@@ -2,13 +2,9 @@ import express from 'express';
 import { getDatabase } from '../db.js';
 import { calculateInvoice } from '../lib/gst.js';
 import { formatIndianCurrency, rupeesToPaise } from '../lib/money.js';
+import { getToday, addDays } from '../lib/dateUtils.js';
 
 const router = express.Router();
-
-function getDemoDate(db) {
-  const row = db.prepare("SELECT value FROM settings WHERE key = 'demo_date'").get();
-  return row ? row.value : '2026-10-22';
-}
 
 /**
  * GET /api/invoices
@@ -17,7 +13,7 @@ function getDemoDate(db) {
 router.get('/', (req, res) => {
   try {
     const db = getDatabase();
-    const demoDate = getDemoDate(db);
+    const demoDate = getToday(db);
 
     const {
       status,
@@ -211,7 +207,7 @@ router.get('/:id', (req, res) => {
     });
 
     // Sort timeline chronologically
-    timeline.sort((a, b) => new Date(a.date) - new Date(b.date));
+    timeline.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 
     res.json({
       ...invoice,
@@ -243,7 +239,7 @@ router.get('/:id', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const db = getDatabase();
-    const demoDate = getDemoDate(db);
+    const demoDate = getToday(db);
 
     const {
       customer_id,
@@ -304,9 +300,7 @@ router.post('/', (req, res) => {
     // Default due date = invoice_date + customer credit period
     let finalDueDate = due_date;
     if (!finalDueDate) {
-      const d = new Date(invoice_date);
-      d.setDate(d.getDate() + (customer.credit_period_days || 30));
-      finalDueDate = d.toISOString().split('T')[0];
+      finalDueDate = addDays(invoice_date, customer.credit_period_days || 30);
     }
 
     let initialStatus = status.toUpperCase();
@@ -314,13 +308,15 @@ router.post('/', (req, res) => {
       initialStatus = 'SENT';
     }
 
+    const paymentToken = `pay_${finalInvNumber.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`;
+
     const insertTx = db.transaction(() => {
       const invStmt = db.prepare(`
         INSERT INTO invoices (
           business_id, customer_id, invoice_number, invoice_type, invoice_date, due_date, place_of_supply,
           subtotal_paise, discount_paise, taxable_paise, cgst_paise, sgst_paise, igst_paise,
-          round_off_paise, total_paise, paid_paise, balance_paise, status, notes, terms
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          round_off_paise, total_paise, paid_paise, balance_paise, status, payment_token, notes, terms
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const invRes = invStmt.run(
@@ -342,6 +338,7 @@ router.post('/', (req, res) => {
         0, // paid_paise
         summary.totalPaise, // balance_paise
         initialStatus,
+        paymentToken,
         notes || null,
         terms || null
       );
@@ -446,4 +443,89 @@ router.put('/:id', (req, res) => {
   }
 });
 
+/**
+ * POST /api/invoices/:id/snooze
+ * Snoozes an invoice until a specified date or by N days.
+ */
+router.post('/:id/snooze', async (req, res) => {
+  try {
+    const db = getDatabase();
+    const invoiceId = req.params.id;
+    const { snooze_until, days } = req.body;
+
+    const { snoozeInvoice } = await import('../services/reminderService.js');
+    const result = snoozeInvoice(db, invoiceId, { snoozeUntil: snooze_until, days });
+
+    const updated = db.prepare('SELECT * FROM invoices WHERE id = ?').get(invoiceId);
+    res.json({
+      message: `Invoice ${updated.invoice_number} snoozed until ${result.snoozed_until}`,
+      invoice: updated,
+      snoozed_until: result.snoozed_until
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'FAILED_TO_SNOOZE_INVOICE', message: err.message });
+  }
+});
+
+/**
+ * POST /api/invoices/:id/dispute
+ * Raises a dispute against an invoice, pausing the escalation ladder.
+ */
+router.post('/:id/dispute', async (req, res) => {
+  try {
+    const db = getDatabase();
+    const invoiceId = req.params.id;
+    const { reason, amount_paise, resolution_notes } = req.body;
+
+    const { disputeInvoice } = await import('../services/reminderService.js');
+    const result = disputeInvoice(db, invoiceId, {
+      reason,
+      amountPaise: amount_paise,
+      resolutionNotes: resolution_notes
+    });
+
+    const updated = db.prepare('SELECT * FROM invoices WHERE id = ?').get(invoiceId);
+    res.status(201).json({
+      message: 'Dispute registered successfully; reminder ladder paused',
+      dispute_id: result.disputeId,
+      invoice: updated
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'FAILED_TO_DISPUTE_INVOICE', message: err.message });
+  }
+});
+
+/**
+ * POST /api/invoices/:id/promise
+ * Registers a promise to pay from the customer, pausing the ladder until promised_date.
+ */
+router.post('/:id/promise', async (req, res) => {
+  try {
+    const db = getDatabase();
+    const invoiceId = req.params.id;
+    const { promised_date, amount_paise, notes } = req.body;
+
+    if (!promised_date) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'promised_date is required' });
+    }
+
+    const { promiseInvoice } = await import('../services/reminderService.js');
+    const result = promiseInvoice(db, invoiceId, {
+      promisedDate: promised_date,
+      amountPaise: amount_paise,
+      notes
+    });
+
+    const updated = db.prepare('SELECT * FROM invoices WHERE id = ?').get(invoiceId);
+    res.status(201).json({
+      message: `Promise recorded for ${promised_date}; ladder paused until then`,
+      promise_id: result.promiseId,
+      invoice: updated
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'FAILED_TO_RECORD_PROMISE', message: err.message });
+  }
+});
+
 export default router;
+

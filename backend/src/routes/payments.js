@@ -1,13 +1,9 @@
 import express from 'express';
 import { getDatabase } from '../db.js';
 import { formatIndianCurrency, rupeesToPaise } from '../lib/money.js';
+import { getToday } from '../lib/dateUtils.js';
 
 const router = express.Router();
-
-function getDemoDate(db) {
-  const row = db.prepare("SELECT value FROM settings WHERE key = 'demo_date'").get();
-  return row ? row.value : '2026-10-22';
-}
 
 /**
  * GET /api/payments
@@ -82,7 +78,7 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const db = getDatabase();
-    const demoDate = getDemoDate(db);
+    const demoDate = getToday(db);
 
     const {
       invoice_id,

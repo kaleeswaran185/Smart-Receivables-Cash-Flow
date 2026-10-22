@@ -6,6 +6,7 @@
 
 import { generateValidGSTIN, calculateInvoice } from './lib/gst.js';
 import { rupeesToPaise } from './lib/money.js';
+import { addDays } from './lib/dateUtils.js';
 
 export const DEMO_DATE = '2026-10-22';
 
@@ -25,6 +26,7 @@ export function seedDatabase(db, options = { force: false }) {
     db.prepare('DELETE FROM promises').run();
     db.prepare('DELETE FROM documents').run();
     db.prepare('DELETE FROM expenses').run();
+    db.prepare('DELETE FROM inbox_items').run();
     db.prepare('DELETE FROM invoices').run();
     db.prepare('DELETE FROM customers').run();
     db.prepare('DELETE FROM settings').run();
@@ -35,9 +37,12 @@ export function seedDatabase(db, options = { force: false }) {
     // 1. Settings
     const insertSetting = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
     insertSetting.run('demo_date', DEMO_DATE);
+    insertSetting.run('demoDate', DEMO_DATE);
     insertSetting.run('app_name', 'Baaki - Smart Receivables Assistant');
     insertSetting.run('default_credit_period_days', '30');
     insertSetting.run('base_currency', 'INR');
+    insertSetting.run('opening_cash_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
+    insertSetting.run('safety_buffer_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
     insertSetting.run('cash_flow_alert_threshold_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
 
     // 2. Business: Sharma Packaging (Pune, Maharashtra)
@@ -245,8 +250,8 @@ export function seedDatabase(db, options = { force: false }) {
       INSERT INTO invoices (
         business_id, customer_id, invoice_number, invoice_type, invoice_date, due_date, place_of_supply,
         subtotal_paise, discount_paise, taxable_paise, cgst_paise, sgst_paise, igst_paise,
-        round_off_paise, total_paise, paid_paise, balance_paise, status, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        round_off_paise, total_paise, paid_paise, balance_paise, status, payment_token, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const insertItemStmt = db.prepare(`
@@ -270,16 +275,9 @@ export function seedDatabase(db, options = { force: false }) {
 
     const insertReminderStmt = db.prepare(`
       INSERT INTO reminders (
-        business_id, invoice_id, customer_id, reminder_type, channel, scheduled_at, sent_at, status, message_body
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        business_id, invoice_id, customer_id, reminder_type, stage, channel, scheduled_at, sent_at, status, message_body
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-
-    // Helper to calculate date string: YYYY-MM-DD
-    function addDays(baseDateStr, days) {
-      const d = new Date(baseDateStr);
-      d.setDate(d.getDate() + days);
-      return d.toISOString().split('T')[0];
-    }
 
     // 40 Invoices Generator Plan:
     // 1-16: PAID (16 invoices)
@@ -350,7 +348,7 @@ export function seedDatabase(db, options = { force: false }) {
       } else if (i <= 33) {
         // OVERDUE (6 invoices) - due in August / September
         targetStatus = 'OVERDUE';
-        const offsetDays = -(70 - (i - 27) * 7);
+        const offsetDays = (i === 30) ? -60 : -(70 - (i - 27) * 7);
         invDate = addDays(DEMO_DATE, offsetDays);
         dueDate = addDays(invDate, 30);
       } else if (i <= 35) {
@@ -371,14 +369,24 @@ export function seedDatabase(db, options = { force: false }) {
       }
 
       // Pick 2 items for this invoice
-      const p1 = packagingProducts[(i * 2) % packagingProducts.length];
-      const p2 = packagingProducts[(i * 3 + 1) % packagingProducts.length];
+      let p1 = packagingProducts[(i * 2) % packagingProducts.length];
+      let p2 = packagingProducts[(i * 3 + 1) % packagingProducts.length];
+
+      let item1Qty = 50 + (i * 10);
+      let item2Qty = 20 + (i * 5);
+      if (i === 30) {
+        // High balance top-priority invoice: ~₹6,10,650 for Grade C customer
+        p1 = packagingProducts[0]; // 5-Ply Corrugated Boxes, rate: 45
+        p2 = packagingProducts[2]; // Air Bubble Wrap Roll, rate: 650
+        item1Qty = 5000;
+        item2Qty = 450;
+      }
 
       const rawItems = [
         {
           description: p1.description,
           hsnCode: p1.hsn,
-          qty: 50 + (i * 10),
+          qty: item1Qty,
           ratePaise: rupeesToPaise(p1.rate),
           gstRate: p1.gstRate,
           discountPercent: i % 4 === 0 ? 5 : 0 // Occasional discount
@@ -386,7 +394,7 @@ export function seedDatabase(db, options = { force: false }) {
         {
           description: p2.description,
           hsnCode: p2.hsn,
-          qty: 20 + (i * 5),
+          qty: item2Qty,
           ratePaise: rupeesToPaise(p2.rate),
           gstRate: p2.gstRate,
           discountPercent: 0
@@ -421,6 +429,8 @@ export function seedDatabase(db, options = { force: false }) {
         balancePaise = totalPaise - paidPaise;
       }
 
+      const paymentToken = `pay_${invNum.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${i}`;
+
       // Insert invoice
       const invRes = insertInvoiceStmt.run(
         businessId,
@@ -441,6 +451,7 @@ export function seedDatabase(db, options = { force: false }) {
         paidPaise,
         balancePaise,
         targetStatus,
+        paymentToken,
         `Invoice for Packaging supplies delivered under PO #${7000 + i}`
       );
 
@@ -481,13 +492,14 @@ export function seedDatabase(db, options = { force: false }) {
         );
       }
 
-      // Insert reminder if overdue or due soon
-      if (targetStatus === 'OVERDUE' || targetStatus === 'DUE_SOON') {
+      // Insert reminder if overdue or due soon (leave i === 30 without a sent reminder)
+      if ((targetStatus === 'OVERDUE' || targetStatus === 'DUE_SOON') && i !== 30) {
         insertReminderStmt.run(
           businessId,
           invoiceId,
           customer.id,
           targetStatus === 'OVERDUE' ? 'OVERDUE_GENTLE' : 'UPCOMING',
+          targetStatus === 'OVERDUE' ? 7 : -3,
           'WHATSAPP',
           addDays(DEMO_DATE, -1),
           addDays(DEMO_DATE, -1),
@@ -512,6 +524,7 @@ export function seedDatabase(db, options = { force: false }) {
 
     // 5. Realistic Business Expenses
     const expenseDefs = [
+      // Past expenses
       { category: 'SALARY', desc: 'Factory Workers & Staff Payroll for Sept 2026', amount: 350000, date: '2026-10-01', vendor: 'Internal Staff' },
       { category: 'RENT', desc: 'Bhosari MIDC Warehouse Lease - October 2026', amount: 85000, date: '2026-10-05', vendor: 'MIDC Property Holdings' },
       { category: 'SUPPLIER', desc: 'Virgin Kraft Paperboard Reel Inflow (20 MT)', amount: 620000, date: '2026-10-08', vendor: 'Century Paperboard Mills Ltd' },
@@ -519,7 +532,24 @@ export function seedDatabase(db, options = { force: false }) {
       { category: 'ELECTRICITY', desc: 'MSEDCL Industrial Electricity Bill - High Tension', amount: 48500, date: '2026-10-15', vendor: 'Maharashtra State Electricity Board' },
       { category: 'GST', desc: 'GST Monthly Challan PMT-06 Settlement (Cash Ledger)', amount: 92400, date: '2026-10-20', vendor: 'GST Portal India' },
       { category: 'OFFICE', desc: 'Printing, Stationery & Plant Consumables', amount: 12500, date: '2026-10-18', vendor: 'Navneet Stationers Pune' },
-      { category: 'UTILITIES', desc: 'Industrial Water Tankers & Facility Maintenance', amount: 18000, date: '2026-10-14', vendor: 'Bhosari Industrial Services' }
+      { category: 'UTILITIES', desc: 'Industrial Water Tankers & Facility Maintenance', amount: 18000, date: '2026-10-14', vendor: 'Bhosari Industrial Services' },
+
+      // Future scheduled expenses within 13-week horizon (starting 2026-10-22)
+      // Week 1 (Oct 22 - Oct 28):
+      { category: 'OFFICE', desc: 'Consumables & Packaging Strapping', amount: 25000, date: '2026-10-25', vendor: 'Navneet Stationers Pune' },
+      // Week 2 (Oct 29 - Nov 04):
+      { category: 'SALARY', desc: 'Factory Staff & Machine Operators Payroll Oct 2026', amount: 250000, date: '2026-11-01', vendor: 'Internal Staff' },
+      // Week 3 (Nov 05 - Nov 11) - Heavy Supplier & Tax week creating the planned cash shortage:
+      { category: 'RENT', desc: 'Bhosari MIDC Plant Lease - November 2026', amount: 85000, date: '2026-11-05', vendor: 'MIDC Property Holdings' },
+      { category: 'SUPPLIER', desc: 'Century Paperboard Mills Bulk Fluting Paper (40 MT)', amount: 650000, date: '2026-11-08', vendor: 'Century Paperboard Mills Ltd' },
+      { category: 'GST', desc: 'GST Monthly Settlement Challan - Oct 2026', amount: 95000, date: '2026-11-10', vendor: 'GST Portal India' },
+      // Week 4 (Nov 12 - Nov 18):
+      { category: 'ELECTRICITY', desc: 'Industrial Power Bill HT Connection', amount: 52000, date: '2026-11-15', vendor: 'Maharashtra State Electricity Board' },
+      // Week 6 (Nov 26 - Dec 02):
+      { category: 'SUPPLIER', desc: 'Raw Adhesives & Polymer Inks', amount: 180000, date: '2026-11-28', vendor: 'Supreme Polymers India' },
+      // Week 7 (Dec 03 - Dec 09):
+      { category: 'SALARY', desc: 'Factory Staff & Operators Payroll Nov 2026', amount: 350000, date: '2026-12-01', vendor: 'Internal Staff' },
+      { category: 'RENT', desc: 'Bhosari MIDC Plant Lease - December 2026', amount: 85000, date: '2026-12-05', vendor: 'MIDC Property Holdings' }
     ];
 
     const insertExpenseStmt = db.prepare(`

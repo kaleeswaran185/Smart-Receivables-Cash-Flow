@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS invoices (
   paid_paise INTEGER NOT NULL DEFAULT 0,
   balance_paise INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'SENT' CHECK(status IN ('DRAFT', 'SENT', 'UNPAID', 'DUE_SOON', 'PARTIALLY_PAID', 'PAID', 'OVERDUE', 'CANCELLED', 'DISPUTED')),
+  payment_token TEXT UNIQUE,
+  snoozed_until TEXT,
   notes TEXT,
   terms TEXT,
   pdf_path TEXT,
@@ -129,7 +131,8 @@ CREATE TABLE IF NOT EXISTS reminders (
   business_id INTEGER NOT NULL REFERENCES business(id) ON DELETE CASCADE,
   invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
   customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-  reminder_type TEXT NOT NULL CHECK(reminder_type IN ('UPCOMING', 'DUE_TODAY', 'OVERDUE_GENTLE', 'OVERDUE_FIRM', 'LEGAL_NOTICE', 'CUSTOM')),
+  reminder_type TEXT NOT NULL CHECK(reminder_type IN ('UPCOMING', 'DUE_TODAY', 'OVERDUE_GENTLE', 'OVERDUE_FIRM', 'URGENT_HOLD', 'LEGAL_NOTICE', 'CUSTOM')),
+  stage INTEGER DEFAULT 0,
   channel TEXT NOT NULL CHECK(channel IN ('WHATSAPP', 'SMS', 'EMAIL')),
   scheduled_at TEXT NOT NULL,
   sent_at TEXT,
@@ -190,12 +193,29 @@ CREATE TABLE IF NOT EXISTS settings (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 12. Inbox Items Table (claims like 'I have already paid', disputes, notes)
+CREATE TABLE IF NOT EXISTS inbox_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  business_id INTEGER NOT NULL REFERENCES business(id) ON DELETE CASCADE,
+  invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
+  customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+  type TEXT NOT NULL DEFAULT 'PAYMENT_CLAIM' CHECK(type IN ('PAYMENT_CLAIM', 'DISPUTE_RAISED', 'PROMISE_MADE', 'OTHER')),
+  payment_date TEXT,
+  amount_paise INTEGER,
+  payment_mode TEXT,
+  reference_no TEXT,
+  notes TEXT,
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'ACCEPTED', 'REJECTED')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_customers_business ON customers(business_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_business ON invoices(business_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_customer ON invoices(customer_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
 CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON invoices(due_date);
+CREATE INDEX IF NOT EXISTS idx_invoices_payment_token ON invoices(payment_token);
 CREATE INDEX IF NOT EXISTS idx_invoice_items_invoice ON invoice_items(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_payments_invoice ON payments(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_payments_customer ON payments(customer_id);
@@ -205,3 +225,5 @@ CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
 CREATE INDEX IF NOT EXISTS idx_disputes_invoice ON disputes(invoice_id);
 CREATE INDEX IF NOT EXISTS idx_promises_customer ON promises(customer_id);
 CREATE INDEX IF NOT EXISTS idx_documents_entity ON documents(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_inbox_items_business ON inbox_items(business_id);
+CREATE INDEX IF NOT EXISTS idx_inbox_items_invoice ON inbox_items(invoice_id);

@@ -6,35 +6,32 @@
  * - Reliability Grade (A, B, C) with qualitative explanation
  */
 
-/**
- * Calculates date difference in whole days (dateA - dateB).
- * Positive means dateA is after dateB (delayed).
- * @param {string|Date} dateA
- * @param {string|Date} dateB
- * @returns {number} Difference in days
- */
-export function differenceInDays(dateA, dateB) {
-  const d1 = new Date(dateA);
-  const d2 = new Date(dateB);
-  const diffTime = d1.getTime() - d2.getTime();
-  return Math.round(diffTime / (1000 * 60 * 60 * 24));
-}
+import { diffDays, getToday } from './dateUtils.js';
 
 /**
  * Calculates reliability metrics and grades for a customer.
+ * Can be called either as:
+ * - calculateCustomerStats({ invoices, payments, demoDate })
+ * - calculateCustomerStats(db, customerId, demoDate)
  *
  * Grade Criteria:
  * - Grade A: >= 80% on-time and average delay <= 5 days and 0 overdue (Excellent track record)
  * - Grade B: 50% - 79% on-time and average delay <= 15 days (Moderate credit risk)
  * - Grade C: < 50% on-time OR average delay > 15 days OR multiple overdue (High credit risk)
- *
- * @param {object} params
- * @param {Array<object>} params.invoices - Customer's invoices
- * @param {Array<object>} params.payments - Customer's payments
- * @param {string} [params.demoDate='2026-10-22'] - Reference demo date
- * @returns {object} Calculated stats
  */
-export function calculateCustomerStats({ invoices = [], payments = [], demoDate = '2026-10-22' }) {
+export function calculateCustomerStats(arg1, arg2, arg3) {
+  if (arg1 && typeof arg1.prepare === 'function') {
+    const db = arg1;
+    const customerId = arg2;
+    const demoDate = arg3 || getToday(db);
+    const invoices = db.prepare('SELECT * FROM invoices WHERE customer_id = ?').all(customerId);
+    const payments = db.prepare('SELECT * FROM payments WHERE customer_id = ?').all(customerId);
+    return computeCustomerStatsInternal({ invoices, payments, demoDate });
+  }
+  return computeCustomerStatsInternal(arg1 || {});
+}
+
+function computeCustomerStatsInternal({ invoices = [], payments = [], demoDate = '2026-10-22' }) {
   const invoiceMap = new Map();
   invoices.forEach(inv => invoiceMap.set(inv.id, inv));
 
@@ -50,7 +47,7 @@ export function calculateCustomerStats({ invoices = [], payments = [], demoDate 
     totalOutstandingPaise += Number(inv.balance_paise || 0);
 
     const isUnpaid = inv.balance_paise > 0 && inv.status !== 'CANCELLED' && inv.status !== 'PAID';
-    if (isUnpaid && inv.due_date && differenceInDays(demoDate, inv.due_date) > 0) {
+    if (isUnpaid && inv.due_date && diffDays(demoDate, inv.due_date) > 0) {
       overdueInvoicesCount++;
     }
   });
@@ -75,7 +72,7 @@ export function calculateCustomerStats({ invoices = [], payments = [], demoDate 
     const invPayments = paymentsByInvoice.get(inv.id) || [];
     if (invPayments.length > 0) {
       invPayments.forEach(pay => {
-        const delay = differenceInDays(pay.payment_date, inv.due_date);
+        const delay = diffDays(pay.payment_date, inv.due_date);
         totalDelayDays += delay;
         paymentsMeasuredCount++;
 
@@ -127,3 +124,5 @@ export function calculateCustomerStats({ invoices = [], payments = [], demoDate 
     reliabilityExplanation
   };
 }
+
+export default calculateCustomerStats;
