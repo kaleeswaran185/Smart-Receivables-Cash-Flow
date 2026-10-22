@@ -32,11 +32,26 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
 // Singleton database instance for the application runtime
 let dbInstance = null;
 
+export function setDatabase(db) {
+  dbInstance = db;
+}
+
 export function getDatabase() {
   if (!dbInstance) {
     dbInstance = createDatabase();
   }
   return dbInstance;
+}
+
+export function closeDatabase() {
+  if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch (e) {
+      // ignore
+    }
+    dbInstance = null;
+  }
 }
 
 export default getDatabase;

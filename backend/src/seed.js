@@ -1,0 +1,553 @@
+/**
+ * Seed script for Baaki - Smart Receivables & Cash Flow Assistant.
+ * Fully fictional realistic data for "Sharma Packaging" (Pune, Maharashtra).
+ * Idempotent: Skips if data already exists, or can be forced.
+ */
+
+import { generateValidGSTIN, calculateInvoice } from './lib/gst.js';
+import { rupeesToPaise } from './lib/money.js';
+
+export const DEMO_DATE = '2026-10-22';
+
+export function seedDatabase(db, options = { force: false }) {
+  const existingBiz = db.prepare('SELECT COUNT(*) as count FROM business').get();
+
+  if (existingBiz.count > 0 && !options.force) {
+    return { seeded: false, message: 'Database already seeded' };
+  }
+
+  // Clear existing if force
+  if (options.force) {
+    db.prepare('DELETE FROM invoice_items').run();
+    db.prepare('DELETE FROM payments').run();
+    db.prepare('DELETE FROM reminders').run();
+    db.prepare('DELETE FROM disputes').run();
+    db.prepare('DELETE FROM promises').run();
+    db.prepare('DELETE FROM documents').run();
+    db.prepare('DELETE FROM expenses').run();
+    db.prepare('DELETE FROM invoices').run();
+    db.prepare('DELETE FROM customers').run();
+    db.prepare('DELETE FROM settings').run();
+    db.prepare('DELETE FROM business').run();
+  }
+
+  const runInTransaction = db.transaction(() => {
+    // 1. Settings
+    const insertSetting = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+    insertSetting.run('demo_date', DEMO_DATE);
+    insertSetting.run('app_name', 'Baaki - Smart Receivables Assistant');
+    insertSetting.run('default_credit_period_days', '30');
+    insertSetting.run('base_currency', 'INR');
+    insertSetting.run('cash_flow_alert_threshold_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
+
+    // 2. Business: Sharma Packaging (Pune, Maharashtra)
+    const bizGSTIN = generateValidGSTIN('27', 'AAACR1234F', '1'); // Maharashtra
+    const insertBiz = db.prepare(`
+      INSERT INTO business (
+        name, trade_name, gstin, reg_type, state_code, state,
+        address_line1, address_line2, city, pincode, phone, email, pan,
+        bank_name, bank_account_no, bank_ifsc, bank_branch, upi_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      'Sharma Packaging',
+      'Sharma Packaging Solutions Pvt Ltd',
+      bizGSTIN,
+      'REGULAR',
+      '27',
+      'Maharashtra',
+      'Plot No. 42, Sector 10, PCMC Industrial Area',
+      'Bhosari MIDC',
+      'Pune',
+      '411026',
+      '+91 98220 12345',
+      'billing@sharmapackaging.in',
+      'AAACR1234F',
+      'HDFC Bank',
+      '50200045892147',
+      'HDFC0001234',
+      'Bhosari MIDC Branch',
+      'sharmapackaging@hdfcbank'
+    );
+
+    const businessId = insertBiz.lastInsertRowid;
+
+    // 3. 12 Customers across different states with valid GSTINs
+    const customerDefs = [
+      {
+        name: 'Apex Logistics Pune',
+        company: 'Apex Supply Chain Solutions LLP',
+        stateCode: '27',
+        state: 'Maharashtra',
+        city: 'Pune',
+        pan: 'AABCA1111A',
+        creditLimit: 1500000, // ₹15L
+        behavior: 'A' // Always early or on-time
+      },
+      {
+        name: 'Bengaluru Fresh Foods',
+        company: 'Bengaluru Organic Organics Pvt Ltd',
+        stateCode: '29',
+        state: 'Karnataka',
+        city: 'Bengaluru',
+        pan: 'BBCDB2222B',
+        creditLimit: 2000000,
+        behavior: 'A'
+      },
+      {
+        name: 'Gujarat Pharma Pack',
+        company: 'Gujarat Healthcare Packaging Ltd',
+        stateCode: '24',
+        state: 'Gujarat',
+        city: 'Ahmedabad',
+        pan: 'DDEFD4444D',
+        creditLimit: 2500000,
+        behavior: 'A'
+      },
+      {
+        name: 'Chennai Textiles & Apparels',
+        company: 'Chennai Fashion Weaves Ltd',
+        stateCode: '33',
+        state: 'Tamil Nadu',
+        city: 'Chennai',
+        pan: 'CCDEC3333C',
+        creditLimit: 1800000,
+        behavior: 'A'
+      },
+      {
+        name: 'Hyderabad Bio Labs',
+        company: 'Hyderabad Life Sciences Research',
+        stateCode: '36',
+        state: 'Telangana',
+        city: 'Hyderabad',
+        pan: 'FFGHF6666F',
+        creditLimit: 1200000,
+        behavior: 'B' // Minor delays
+      },
+      {
+        name: 'Delhi Electronics Hub',
+        company: 'Delhi Smart Tech Solutions LLP',
+        stateCode: '07',
+        state: 'Delhi',
+        city: 'New Delhi',
+        pan: 'EEFGE5555E',
+        creditLimit: 1000000,
+        behavior: 'B'
+      },
+      {
+        name: 'Indore Agro Processing',
+        company: 'Indore Food Parks Pvt Ltd',
+        stateCode: '23',
+        state: 'Madhya Pradesh',
+        city: 'Indore',
+        pan: 'JJKLJ1010J',
+        creditLimit: 1400000,
+        behavior: 'B'
+      },
+      {
+        name: 'Jaipur Handicrafts Emporium',
+        company: 'Jaipur Royal Exports LLP',
+        stateCode: '08',
+        state: 'Rajasthan',
+        city: 'Jaipur',
+        pan: 'IIKJI9999I',
+        creditLimit: 800000,
+        behavior: 'B'
+      },
+      {
+        name: 'Kolkata Jute & Packaging',
+        company: 'Eastern Packaging Goods Ltd',
+        stateCode: '19',
+        state: 'West Bengal',
+        city: 'Kolkata',
+        pan: 'HHJIH8888H',
+        creditLimit: 1000000,
+        behavior: 'C' // High delay
+      },
+      {
+        name: 'Noida Auto Components',
+        company: 'Noida Precision Engineering Pvt Ltd',
+        stateCode: '09',
+        state: 'Uttar Pradesh',
+        city: 'Noida',
+        pan: 'GGHIG7777G',
+        creditLimit: 1200000,
+        behavior: 'C'
+      },
+      {
+        name: 'Gurugram Retail Ventures',
+        company: 'Gurugram Quick Commerce Labs',
+        stateCode: '06',
+        state: 'Haryana',
+        city: 'Gurugram',
+        pan: 'LLMNL3030L',
+        creditLimit: 900000,
+        behavior: 'C'
+      },
+      {
+        name: 'Kochi Spices Export',
+        company: 'Malabar Spices & Aromas Ltd',
+        stateCode: '32',
+        state: 'Kerala',
+        city: 'Kochi',
+        pan: 'KKLMK2020K',
+        creditLimit: 1100000,
+        behavior: 'C'
+      }
+    ];
+
+    const insertCustStmt = db.prepare(`
+      INSERT INTO customers (
+        business_id, name, company_name, gstin, state_code, state,
+        address, city, pincode, phone, email, credit_limit_paise, credit_period_days
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const customers = [];
+    customerDefs.forEach((c, idx) => {
+      const gstin = generateValidGSTIN(c.stateCode, c.pan, '1');
+      const res = insertCustStmt.run(
+        businessId,
+        c.name,
+        c.company,
+        gstin,
+        c.stateCode,
+        c.state,
+        `Unit ${idx + 1}, Industrial Estate`,
+        c.city,
+        `${c.stateCode}0001`,
+        `+91 91234 ${50000 + idx}`,
+        `accounts@${c.name.toLowerCase().replace(/[^a-z]/g, '')}.com`,
+        rupeesToPaise(c.creditLimit),
+        30
+      );
+      customers.push({
+        id: res.lastInsertRowid,
+        ...c,
+        gstin
+      });
+    });
+
+    // 4. Products Catalogue for realistic items
+    const packagingProducts = [
+      { description: 'Heavy Duty 5-Ply Corrugated Boxes (500x400x300mm)', hsn: '481910', rate: 45, gstRate: 18 },
+      { description: 'Standard 3-Ply Shipping Cartons (300x250x200mm)', hsn: '481910', rate: 28, gstRate: 18 },
+      { description: 'Air Bubble Wrap Roll (100m x 1m, 80 GSM)', hsn: '392390', rate: 650, gstRate: 18 },
+      { description: 'BoPP Self-Adhesive Brown Tape (65m x 48mm, 45 Micron)', hsn: '391910', rate: 38, gstRate: 18 },
+      { description: 'Stretch Film Pallet Wrap Roll (500mm x 23 Micron)', hsn: '392010', rate: 480, gstRate: 18 },
+      { description: 'Custom Printed Rigid Paperboard Boxes', hsn: '481920', rate: 120, gstRate: 12 },
+      { description: 'Eco-Friendly Honeycomb Paper Padded Mailers', hsn: '481910', rate: 18, gstRate: 12 },
+      { description: 'Corrugated Corner Edge Protectors (Pack of 100)', hsn: '481910', rate: 220, gstRate: 5 },
+      { description: 'Bio-Degradable Courier Poly Bags (10x14 Inch, 100 pcs)', hsn: '392321', rate: 320, gstRate: 18 }
+    ];
+
+    // Statements for Invoices and Items
+    const insertInvoiceStmt = db.prepare(`
+      INSERT INTO invoices (
+        business_id, customer_id, invoice_number, invoice_type, invoice_date, due_date, place_of_supply,
+        subtotal_paise, discount_paise, taxable_paise, cgst_paise, sgst_paise, igst_paise,
+        round_off_paise, total_paise, paid_paise, balance_paise, status, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertItemStmt = db.prepare(`
+      INSERT INTO invoice_items (
+        invoice_id, description, hsn_code, qty, unit, rate_paise, discount_paise,
+        taxable_paise, gst_rate, cgst_paise, sgst_paise, igst_paise, total_paise
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertPaymentStmt = db.prepare(`
+      INSERT INTO payments (
+        business_id, customer_id, invoice_id, payment_date, amount_paise, payment_mode, reference_no, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertDisputeStmt = db.prepare(`
+      INSERT INTO disputes (
+        business_id, invoice_id, customer_id, reason, disputed_amount_paise, status, resolution_notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertReminderStmt = db.prepare(`
+      INSERT INTO reminders (
+        business_id, invoice_id, customer_id, reminder_type, channel, scheduled_at, sent_at, status, message_body
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    // Helper to calculate date string: YYYY-MM-DD
+    function addDays(baseDateStr, days) {
+      const d = new Date(baseDateStr);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().split('T')[0];
+    }
+
+    // 40 Invoices Generator Plan:
+    // 1-16: PAID (16 invoices)
+    // 17-22: PARTIALLY_PAID (6 invoices)
+    // 23-27: DUE_SOON (5 invoices)
+    // 28-33: OVERDUE (6 invoices)
+    // 34-35: DISPUTED (2 invoices)
+    // 36-37: DRAFT (2 invoices)
+    // 38-40: SENT (3 invoices)
+
+    // Strategic customer distribution across the 40 invoices:
+    // Index 0..3: Grade A customers (Apex, Bengaluru, Gujarat, Chennai)
+    // Index 4..7: Grade B customers (Hyderabad, Delhi, Indore, Jaipur)
+    // Index 8..11: Grade C customers (Kolkata, Noida, Gurugram, Kochi)
+    const invoiceCustomerIndex = [
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, // 1-12
+      0, 1, 2, 3,                         // 13-16 (PAID)
+      4, 5, 6, 7, 8, 9,                   // 17-22 (PARTIALLY_PAID)
+      0, 1, 2, 3, 4,                      // 23-27 (DUE_SOON)
+      8, 9, 10, 11, 8, 9,                 // 28-33 (OVERDUE)
+      10, 11,                             // 34-35 (DISPUTED)
+      0, 2,                               // 36-37 (DRAFT)
+      1, 5, 6                             // 38-40 (SENT)
+    ];
+
+    let invCounter = 1001;
+
+    for (let i = 1; i <= 40; i++) {
+      const invNum = `INV-2026-${invCounter++}`;
+      const custIdx = invoiceCustomerIndex[i - 1];
+      const customer = customers[custIdx];
+
+      let targetStatus = 'PAID';
+      let invDate = '2026-07-01';
+      let dueDate = '2026-07-31';
+      let paymentDaysAfterDue = 0;
+
+      if (i <= 16) {
+        // PAID (16 invoices)
+        targetStatus = 'PAID';
+        const offsetDays = -(120 - i * 6);
+        invDate = addDays(DEMO_DATE, offsetDays);
+        dueDate = addDays(invDate, 30);
+
+        if (customer.behavior === 'A') {
+          paymentDaysAfterDue = -2 - (i % 3); // 2 to 4 days ahead of due date (100% on-time)
+        } else if (customer.behavior === 'B') {
+          // Moderate delays: one on-time (-2), one slightly late (6 days) -> ~50% on-time, avg delay ~2 days
+          paymentDaysAfterDue = (i % 2 === 1) ? -2 : 6;
+        } else {
+          // Grade C: severe delay 25 to 35 days (0% on-time)
+          paymentDaysAfterDue = 25 + (i % 10);
+        }
+      } else if (i <= 22) {
+        // PARTIALLY_PAID (6 invoices)
+        targetStatus = 'PARTIALLY_PAID';
+        const isGradeC = (custIdx >= 8);
+        const offsetDays = isGradeC ? -65 : -15; // Grade C is old, Grade B is fresh
+        invDate = addDays(DEMO_DATE, offsetDays);
+        dueDate = addDays(invDate, 30);
+        paymentDaysAfterDue = isGradeC ? 25 : 4;
+      } else if (i <= 27) {
+        // DUE_SOON (5 invoices) - due between Oct 23 and Oct 31
+        targetStatus = 'DUE_SOON';
+        const offsetDays = -(25 - (i - 22) * 3);
+        invDate = addDays(DEMO_DATE, offsetDays);
+        dueDate = addDays(DEMO_DATE, 1 + (i - 22) * 2);
+      } else if (i <= 33) {
+        // OVERDUE (6 invoices) - due in August / September
+        targetStatus = 'OVERDUE';
+        const offsetDays = -(70 - (i - 27) * 7);
+        invDate = addDays(DEMO_DATE, offsetDays);
+        dueDate = addDays(invDate, 30);
+      } else if (i <= 35) {
+        // DISPUTED (2 invoices)
+        targetStatus = 'DISPUTED';
+        invDate = addDays(DEMO_DATE, -40 + (i - 33) * 10);
+        dueDate = addDays(invDate, 30);
+      } else if (i <= 37) {
+        // DRAFT (2 invoices)
+        targetStatus = 'DRAFT';
+        invDate = addDays(DEMO_DATE, -2 + (i - 35));
+        dueDate = addDays(invDate, 30);
+      } else {
+        // SENT (3 invoices)
+        targetStatus = 'SENT';
+        invDate = addDays(DEMO_DATE, -5 + (i - 37) * 2);
+        dueDate = addDays(invDate, 30);
+      }
+
+      // Pick 2 items for this invoice
+      const p1 = packagingProducts[(i * 2) % packagingProducts.length];
+      const p2 = packagingProducts[(i * 3 + 1) % packagingProducts.length];
+
+      const rawItems = [
+        {
+          description: p1.description,
+          hsnCode: p1.hsn,
+          qty: 50 + (i * 10),
+          ratePaise: rupeesToPaise(p1.rate),
+          gstRate: p1.gstRate,
+          discountPercent: i % 4 === 0 ? 5 : 0 // Occasional discount
+        },
+        {
+          description: p2.description,
+          hsnCode: p2.hsn,
+          qty: 20 + (i * 5),
+          ratePaise: rupeesToPaise(p2.rate),
+          gstRate: p2.gstRate,
+          discountPercent: 0
+        }
+      ];
+
+      // Calculate invoice with complete GST engine
+      const calculation = calculateInvoice({
+        business: {
+          gstin: bizGSTIN,
+          stateCode: '27',
+          regType: 'REGULAR'
+        },
+        customer: {
+          gstin: customer.gstin,
+          stateCode: customer.stateCode
+        },
+        items: rawItems
+      });
+
+      const { summary, items: calcItems } = calculation;
+      const totalPaise = summary.totalPaise;
+
+      let paidPaise = 0;
+      let balancePaise = totalPaise;
+
+      if (targetStatus === 'PAID') {
+        paidPaise = totalPaise;
+        balancePaise = 0;
+      } else if (targetStatus === 'PARTIALLY_PAID') {
+        paidPaise = Math.round(totalPaise * 0.4); // 40% paid
+        balancePaise = totalPaise - paidPaise;
+      }
+
+      // Insert invoice
+      const invRes = insertInvoiceStmt.run(
+        businessId,
+        customer.id,
+        invNum,
+        calculation.invoiceType,
+        invDate,
+        dueDate,
+        customer.state,
+        summary.subtotalPaise,
+        summary.discountPaise,
+        summary.taxablePaise,
+        summary.cgstPaise,
+        summary.sgstPaise,
+        summary.igstPaise,
+        summary.roundOffPaise,
+        totalPaise,
+        paidPaise,
+        balancePaise,
+        targetStatus,
+        `Invoice for Packaging supplies delivered under PO #${7000 + i}`
+      );
+
+      const invoiceId = invRes.lastInsertRowid;
+
+      // Insert line items
+      calcItems.forEach(item => {
+        insertItemStmt.run(
+          invoiceId,
+          item.description,
+          item.hsnCode,
+          item.qty,
+          item.unit,
+          item.ratePaise,
+          item.discountPaise,
+          item.taxablePaise,
+          item.gstRate,
+          item.cgstPaise,
+          item.sgstPaise,
+          item.igstPaise,
+          item.totalPaise
+        );
+      });
+
+      // Insert payments if paid or partially paid
+      if (paidPaise > 0) {
+        const paymentDate = addDays(dueDate, paymentDaysAfterDue);
+        const paymentMode = i % 3 === 0 ? 'NEFT' : (i % 2 === 0 ? 'UPI' : 'RTGS');
+        insertPaymentStmt.run(
+          businessId,
+          customer.id,
+          invoiceId,
+          paymentDate,
+          paidPaise,
+          paymentMode,
+          `UTR${Date.now().toString().slice(-6)}${100 + i}`,
+          targetStatus === 'PAID' ? 'Full settlement' : 'Advance 40% installment'
+        );
+      }
+
+      // Insert reminder if overdue or due soon
+      if (targetStatus === 'OVERDUE' || targetStatus === 'DUE_SOON') {
+        insertReminderStmt.run(
+          businessId,
+          invoiceId,
+          customer.id,
+          targetStatus === 'OVERDUE' ? 'OVERDUE_GENTLE' : 'UPCOMING',
+          'WHATSAPP',
+          addDays(DEMO_DATE, -1),
+          addDays(DEMO_DATE, -1),
+          'SENT',
+          `Dear ${customer.name}, friendly reminder that ${invNum} of amount ₹${(balancePaise / 100).toLocaleString('en-IN')} is due on ${dueDate}.`
+        );
+      }
+
+      // Insert dispute record if disputed
+      if (targetStatus === 'DISPUTED') {
+        insertDisputeStmt.run(
+          businessId,
+          invoiceId,
+          customer.id,
+          'Packaging dimensions slightly deviated from specification in batch #B3',
+          Math.round(totalPaise * 0.3),
+          'OPEN',
+          'Customer requested replacement or 30% credit note for damaged edges'
+        );
+      }
+    }
+
+    // 5. Realistic Business Expenses
+    const expenseDefs = [
+      { category: 'SALARY', desc: 'Factory Workers & Staff Payroll for Sept 2026', amount: 350000, date: '2026-10-01', vendor: 'Internal Staff' },
+      { category: 'RENT', desc: 'Bhosari MIDC Warehouse Lease - October 2026', amount: 85000, date: '2026-10-05', vendor: 'MIDC Property Holdings' },
+      { category: 'SUPPLIER', desc: 'Virgin Kraft Paperboard Reel Inflow (20 MT)', amount: 620000, date: '2026-10-08', vendor: 'Century Paperboard Mills Ltd' },
+      { category: 'SUPPLIER', desc: 'Industrial BoPP Film & Adhesive Raw Material', amount: 145000, date: '2026-10-12', vendor: 'Supreme Polymers India' },
+      { category: 'ELECTRICITY', desc: 'MSEDCL Industrial Electricity Bill - High Tension', amount: 48500, date: '2026-10-15', vendor: 'Maharashtra State Electricity Board' },
+      { category: 'GST', desc: 'GST Monthly Challan PMT-06 Settlement (Cash Ledger)', amount: 92400, date: '2026-10-20', vendor: 'GST Portal India' },
+      { category: 'OFFICE', desc: 'Printing, Stationery & Plant Consumables', amount: 12500, date: '2026-10-18', vendor: 'Navneet Stationers Pune' },
+      { category: 'UTILITIES', desc: 'Industrial Water Tankers & Facility Maintenance', amount: 18000, date: '2026-10-14', vendor: 'Bhosari Industrial Services' }
+    ];
+
+    const insertExpenseStmt = db.prepare(`
+      INSERT INTO expenses (
+        business_id, category, expense_date, amount_paise, vendor, payment_mode, reference_no, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    expenseDefs.forEach((exp, idx) => {
+      insertExpenseStmt.run(
+        businessId,
+        exp.category,
+        exp.date,
+        rupeesToPaise(exp.amount),
+        exp.vendor,
+        'NEFT',
+        `CMS${8000 + idx}`,
+        exp.desc
+      );
+    });
+  });
+
+  runInTransaction();
+
+  return {
+    seeded: true,
+    message: 'Seeded Sharma Packaging with 12 customers, 40 invoices, payments and expenses'
+  };
+}
+
+export default seedDatabase;

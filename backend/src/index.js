@@ -1,18 +1,22 @@
-import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
+import { createApp } from './app.js';
+import { getDatabase } from './db.js';
+import { seedDatabase } from './seed.js';
 
 dotenv.config();
 
-const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+// Initialize database and run seed automatically if DB is empty
+const db = getDatabase();
+const seedResult = seedDatabase(db);
+if (seedResult.seeded) {
+  console.log('Database initialized and seeded:', seedResult.message);
+} else {
+  console.log('Database initialized:', seedResult.message);
+}
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'baaki-backend', timestamp: new Date().toISOString() });
-});
+const app = createApp();
 
 app.listen(PORT, () => {
   console.log(`Baaki backend listening on port ${PORT}`);

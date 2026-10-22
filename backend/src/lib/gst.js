@@ -146,6 +146,26 @@ export function stateFromGSTIN(gstinOrCode) {
 }
 
 /**
+ * Normalizes a state code or name into a canonical 2-digit state code.
+ * @param {string} codeOrName
+ * @returns {string|null} 2-digit code or null
+ */
+export function normalizeStateCode(codeOrName) {
+  if (!codeOrName || typeof codeOrName !== 'string') return null;
+  const clean = codeOrName.trim().toUpperCase();
+  if (STATE_CODES[clean]) return clean;
+  // If starts with 2 digits that are valid state code
+  if (/^[0-9]{2}/.test(clean) && STATE_CODES[clean.substring(0, 2)]) {
+    return clean.substring(0, 2);
+  }
+  // Check matching state name
+  for (const [code, name] of Object.entries(STATE_CODES)) {
+    if (name.toUpperCase() === clean) return code;
+  }
+  return null;
+}
+
+/**
  * Calculates line items, GST breakdown (CGST+SGST vs IGST), round off, and totals for an invoice.
  *
  * Rules:
@@ -181,10 +201,10 @@ export function calculateInvoice({ business = {}, customer = {}, items = [], pla
     isGSTApplicable = true;
   }
 
-  // Determine state codes
-  const businessStateCode = business.stateCode || (business.gstin ? business.gstin.substring(0, 2) : null);
-  const customerStateCode = customer.stateCode || (customer.gstin ? customer.gstin.substring(0, 2) : null);
-  const posCode = placeOfSupply ? (placeOfSupply.length >= 2 ? placeOfSupply.substring(0, 2) : placeOfSupply) : customerStateCode;
+  // Determine normalized state codes
+  const businessStateCode = normalizeStateCode(business.stateCode || (business.gstin ? business.gstin.substring(0, 2) : business.state));
+  const customerStateCode = normalizeStateCode(customer.stateCode || (customer.gstin ? customer.gstin.substring(0, 2) : customer.state));
+  const posCode = normalizeStateCode(placeOfSupply) || customerStateCode;
 
   // Same state (Intra-state) check
   const isSameState = Boolean(businessStateCode && posCode && businessStateCode === posCode);
