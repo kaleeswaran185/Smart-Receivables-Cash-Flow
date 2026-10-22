@@ -232,6 +232,41 @@ router.get('/:id', (req, res) => {
 });
 
 /**
+ * POST /api/invoices/preview
+ * Live preview calculation without database insertion.
+ * Backend calculation is the single source of truth.
+ */
+router.post('/preview', (req, res) => {
+  try {
+    const db = getDatabase();
+    const { customer_id, place_of_supply, items = [] } = req.body;
+
+    const customer = customer_id ? db.prepare('SELECT * FROM customers WHERE id = ?').get(customer_id) : {};
+    const business = db.prepare('SELECT * FROM business LIMIT 1').get() || {};
+
+    const calculation = calculateInvoice({
+      business: {
+        gstin: business.gstin,
+        stateCode: business.state_code,
+        state: business.state,
+        regType: business.reg_type
+      },
+      customer: {
+        gstin: customer?.gstin,
+        stateCode: customer?.state_code,
+        state: customer?.state
+      },
+      items,
+      placeOfSupply: place_of_supply || customer?.state
+    });
+
+    res.json(calculation);
+  } catch (err) {
+    res.status(500).json({ error: 'FAILED_TO_PREVIEW_INVOICE', message: err.message });
+  }
+});
+
+/**
  * POST /api/invoices
  * Creates invoice. Recalculates all totals on the backend.
  * Never trusts frontend numbers.

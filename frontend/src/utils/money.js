@@ -14,6 +14,16 @@ export function paiseToRupees(paise) {
 }
 
 /**
+ * Converts rupees to integer paise
+ * @param {number|string} rupees
+ * @returns {number}
+ */
+export function rupeesToPaise(rupees) {
+  if (rupees === null || rupees === undefined || isNaN(Number(rupees))) return 0;
+  return Math.round(Number(rupees) * 100);
+}
+
+/**
  * Formats paise into Indian Rupee format (e.g., ₹1,00,000 or ₹2,60,281)
  * @param {number} paise - Amount in paise
  * @param {object} [options]
@@ -64,6 +74,94 @@ export function formatCompactRupees(paise) {
     return `${sign}₹${(abs / 1000).toFixed(1).replace(/\.0$/, '')} k`;
   }
   return `${sign}₹${abs}`;
+}
+
+const ONES = [
+  '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+  'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+  'Seventeen', 'Eighteen', 'Nineteen'
+];
+
+const TENS = [
+  '', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'
+];
+
+function convertBelowThousand(n) {
+  let str = '';
+  if (n >= 100) {
+    str += ONES[Math.floor(n / 100)] + ' Hundred';
+    n %= 100;
+    if (n > 0) str += ' ';
+  }
+  if (n > 0) {
+    if (n < 20) {
+      str += ONES[n];
+    } else {
+      const ten = Math.floor(n / 10);
+      const unit = n % 10;
+      str += TENS[ten] + (unit ? ' ' + ONES[unit] : '');
+    }
+  }
+  return str;
+}
+
+function integerRupeesToWords(num) {
+  if (num === 0) return 'Zero';
+  let words = '';
+  const crore = Math.floor(num / 10000000);
+  num %= 10000000;
+  const lakh = Math.floor(num / 100000);
+  num %= 100000;
+  const thousand = Math.floor(num / 1000);
+  num %= 1000;
+
+  if (crore > 0) {
+    words += (crore >= 100 ? integerRupeesToWords(crore) : convertBelowThousand(crore)) + ' Crore ';
+  }
+  if (lakh > 0) {
+    words += convertBelowThousand(lakh) + ' Lakh ';
+  }
+  if (thousand > 0) {
+    words += convertBelowThousand(thousand) + ' Thousand ';
+  }
+  if (num > 0) {
+    words += convertBelowThousand(num);
+  }
+  return words.trim();
+}
+
+/**
+ * Converts amount in paise to Indian words with "Rupees ... Only".
+ * @param {number} paise - Amount in integer paise
+ * @returns {string} Amount in words
+ */
+export function amountInWords(paise) {
+  if (paise === null || paise === undefined || isNaN(Number(paise))) {
+    return 'Rupees Zero Only';
+  }
+
+  const isNegative = paise < 0;
+  const absPaise = Math.abs(Math.round(Number(paise)));
+  const rupees = Math.floor(absPaise / 100);
+  const remainingPaise = absPaise % 100;
+
+  if (rupees === 0 && remainingPaise === 0) {
+    return 'Rupees Zero Only';
+  }
+
+  let result = (isNegative ? 'Minus ' : '') + 'Rupees ';
+  if (rupees > 0) {
+    result += integerRupeesToWords(rupees);
+  } else {
+    result += 'Zero';
+  }
+
+  if (remainingPaise > 0) {
+    const paiseWords = convertBelowThousand(remainingPaise);
+    result += ` and ${paiseWords} ${remainingPaise === 1 ? 'Paisa' : 'Paise'}`;
+  }
+
+  return `${result.trim()} Only`;
 }
 
 /**
