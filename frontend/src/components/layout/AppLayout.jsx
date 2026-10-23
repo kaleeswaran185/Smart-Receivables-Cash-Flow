@@ -17,30 +17,37 @@ import {
   X
 } from 'lucide-react';
 
+import { useTranslation } from '../../utils/i18n';
+
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { demoDate, business } = useDemo();
+  const { t, language, setLanguage } = useTranslation();
+
+  const toggleLanguage = () => {
+    setLanguage(language === 'hi' ? 'en' : 'hi');
+  };
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Invoices', path: '/invoices', icon: FileText },
-    { name: 'Customers', path: '/customers', icon: Users },
-    { name: 'Payments', path: '/payments', icon: CreditCard },
-    { name: 'Follow-ups', path: '/followups', icon: Flame, badge: 'Chase' },
-    { name: 'Inbox', path: '/inbox', icon: Inbox },
-    { name: 'Cash Forecast', path: '/forecast', icon: TrendingUp },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    { name: t('dashboard', 'Dashboard'), path: '/dashboard', icon: LayoutDashboard },
+    { name: t('invoices', 'Invoices'), path: '/invoices', icon: FileText },
+    { name: t('customers', 'Customers'), path: '/customers', icon: Users },
+    { name: t('payments', 'Payments'), path: '/payments', icon: CreditCard },
+    { name: t('followups', 'Follow-ups'), path: '/followups', icon: Flame, badge: t('chase', 'Chase') },
+    { name: t('inbox', 'Inbox'), path: '/inbox', icon: Inbox },
+    { name: t('forecast', 'Cash Forecast'), path: '/forecast', icon: TrendingUp },
+    { name: t('settings', 'Settings'), path: '/settings', icon: Settings },
   ];
 
   // 5 primary items for mobile bottom bar (min 48px touch targets)
   const mobileBottomItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Invoices', path: '/invoices', icon: FileText },
-    { name: 'Chase', path: '/followups', icon: Flame },
-    { name: 'Forecast', path: '/forecast', icon: TrendingUp },
-    { name: 'More', path: '/settings', icon: Settings, isMenu: true }
+    { name: t('dashboard', 'Dashboard'), path: '/dashboard', icon: LayoutDashboard },
+    { name: t('invoices', 'Invoices'), path: '/invoices', icon: FileText },
+    { name: t('chase', 'Chase'), path: '/followups', icon: Flame },
+    { name: t('forecast', 'Forecast'), path: '/forecast', icon: TrendingUp },
+    { name: t('more', 'More'), path: '/settings', icon: Settings, isMenu: true }
   ];
 
   return (
@@ -153,7 +160,16 @@ export function AppLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="min-h-[44px] px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700"
+              title="Switch Language / भाषा बदलें"
+            >
+              {language === 'hi' ? 'EN' : 'हिन्दी'}
+            </button>
+
             <button
               type="button"
               onClick={() => navigate('/invoices/new')}
@@ -222,7 +238,18 @@ export function AppLayout() {
             </h2>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleLanguage}
+              className="min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
+              title="Switch Language / भाषा बदलें"
+            >
+              <span className={language === 'en' ? 'text-indigo-600 font-extrabold' : 'text-slate-500'}>EN</span>
+              <span className="text-slate-300">|</span>
+              <span className={language === 'hi' ? 'text-indigo-600 font-extrabold' : 'text-slate-500'}>हिन्दी</span>
+            </button>
+
             <div className="flex items-center gap-2 bg-slate-100 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 border border-slate-200">
               <Calendar className="w-3.5 h-3.5 text-indigo-600" />
               <span>Simulated Date: <strong className="text-slate-900 font-mono">{demoDate}</strong></span>
@@ -234,7 +261,7 @@ export function AppLayout() {
               className="min-h-[48px] px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-sm flex items-center gap-2 shadow-sm transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span>New Invoice</span>
+              <span>{t('new_invoice', 'New Invoice')}</span>
             </button>
           </div>
         </div>

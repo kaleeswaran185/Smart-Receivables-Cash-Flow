@@ -210,6 +210,27 @@ CREATE TABLE IF NOT EXISTS inbox_items (
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 13. Bank Transactions Table (for SPEC Section 18 bank CSV import & reconciliation)
+CREATE TABLE IF NOT EXISTS bank_transactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  business_id INTEGER NOT NULL REFERENCES business(id) ON DELETE CASCADE,
+  tx_hash TEXT NOT NULL UNIQUE,
+  tx_date TEXT NOT NULL,
+  narration TEXT NOT NULL,
+  ref_no TEXT,
+  amount_paise INTEGER NOT NULL,
+  tx_type TEXT NOT NULL DEFAULT 'CREDIT' CHECK(tx_type IN ('CREDIT', 'DEBIT')),
+  status TEXT NOT NULL DEFAULT 'UNRECONCILED' CHECK(status IN ('UNRECONCILED', 'RECONCILED', 'IGNORED')),
+  matched_invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
+  matched_customer_id INTEGER REFERENCES customers(id) ON DELETE SET NULL,
+  confidence TEXT DEFAULT 'NONE' CHECK(confidence IN ('HIGH', 'MEDIUM', 'LOW', 'NONE')),
+  match_reason TEXT,
+  tds_rate REAL DEFAULT 0,
+  tds_deducted_paise INTEGER DEFAULT 0,
+  payment_id INTEGER REFERENCES payments(id) ON DELETE SET NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_customers_business ON customers(business_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_business ON invoices(business_id);
@@ -228,3 +249,6 @@ CREATE INDEX IF NOT EXISTS idx_promises_customer ON promises(customer_id);
 CREATE INDEX IF NOT EXISTS idx_documents_entity ON documents(entity_type, entity_id);
 CREATE INDEX IF NOT EXISTS idx_inbox_items_business ON inbox_items(business_id);
 CREATE INDEX IF NOT EXISTS idx_inbox_items_invoice ON inbox_items(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_bank_tx_hash ON bank_transactions(tx_hash);
+CREATE INDEX IF NOT EXISTS idx_bank_tx_status ON bank_transactions(status);
+

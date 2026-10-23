@@ -10,6 +10,7 @@ import dashboardRouter from './routes/dashboard.js';
 import forecastRouter from './routes/forecast.js';
 import chaseRouter from './routes/chase.js';
 import inboxRouter from './routes/inbox.js';
+import bankImportRouter from './routes/bankImport.js';
 import { getToday } from './lib/dateUtils.js';
 import { getDatabase } from './db.js';
 
@@ -46,6 +47,7 @@ export function createApp() {
   app.use('/api/forecast', forecastRouter);
   app.use('/api/chase', chaseRouter);
   app.use('/api/inbox', inboxRouter);
+  app.use('/api/bank-import', bankImportRouter);
 
   // 404 Handler
   app.use((req, res) => {

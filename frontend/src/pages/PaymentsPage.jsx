@@ -12,15 +12,19 @@ import {
   ShieldCheck,
   RefreshCw,
   X,
-  AlertCircle
+  AlertCircle,
+  Upload
 } from 'lucide-react';
 import api from '../services/api';
 import { formatIndianCurrency, formatDate, rupeesToPaise, paiseToRupees } from '../utils/money';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { BankImportModal } from '../components/common/BankImportModal';
+import { useTranslation } from '../utils/i18n';
 
 export function PaymentsPage() {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -40,6 +44,7 @@ export function PaymentsPage() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
+  const [showBankImport, setShowBankImport] = useState(false);
 
   // Confirmation Step State
   const [pendingConfirmation, setPendingConfirmation] = useState(null);
@@ -202,7 +207,7 @@ export function PaymentsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={loadData}
@@ -214,11 +219,20 @@ export function PaymentsPage() {
 
           <button
             type="button"
+            onClick={() => setShowBankImport(true)}
+            className="min-h-[48px] px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-700 border border-indigo-200 font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-colors"
+          >
+            <Upload className="w-4 h-4" />
+            <span>{t('import_bank_csv', 'Import Bank CSV')}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => openRecordModal()}
             className="min-h-[48px] px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors"
           >
             <Plus className="w-5 h-5" />
-            <span>Record Settlement</span>
+            <span>{t('record_payment', 'Record Settlement')}</span>
           </button>
         </div>
       </div>
@@ -535,6 +549,16 @@ export function PaymentsPage() {
           </div>
         </div>
       )}
+
+      {/* Bank Statement CSV Import Modal */}
+      <BankImportModal
+        isOpen={showBankImport}
+        onClose={() => setShowBankImport(false)}
+        onReconciled={() => {
+          loadData();
+        }}
+        openInvoices={invoices.filter((i) => i.balance_paise > 0)}
+      />
     </div>
   );
 }
