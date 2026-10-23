@@ -11,6 +11,11 @@ if (process.env.NODE_ENV === 'production' && (!process.env.AUTH_SECRET || !proce
   process.exit(1);
 }
 
+// In production, silent demo session and public demo features require DEMO_MODE=true
+if (process.env.NODE_ENV === 'production' && process.env.DEMO_MODE !== 'true') {
+  console.warn('⚠️ WARNING: DEMO_MODE is not set to "true" in production. Silent demo login and public demo features will be disabled.');
+}
+
 const PORT = process.env.PORT || 5000;
 
 // Initialize database and run seed automatically if DB is empty

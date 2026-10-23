@@ -1,7 +1,8 @@
 /**
  * API Client for Baaki Frontend
  * Dynamically resolves base URL via `import.meta.env.VITE_API_URL`.
- * No localhost or port numbers are hardcoded.
+ * Stores Bearer token in memory and sessionStorage.
+ * On 401, requests a new token via POST /api/auth/demo-login once and retries the request once.
  */
 
 const RAW_API_URL = import.meta.env.VITE_API_URL;
@@ -19,7 +20,7 @@ export const API_BASE_URL = RAW_API_URL
   ? RAW_API_URL.replace(/\/+$/, '')
   : (isProd ? null : '/api');
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(message, status, data) {
     super(message);
     this.name = 'ApiError';
@@ -28,7 +29,79 @@ class ApiError extends Error {
   }
 }
 
-async function request(endpoint, options = {}) {
+// In-memory token reference initialized from sessionStorage
+let inMemoryToken = typeof window !== 'undefined'
+  ? (sessionStorage.getItem('baaki_auth_token') || localStorage.getItem('baaki_auth_token'))
+  : null;
+
+export function setAuthToken(token) {
+  inMemoryToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      sessionStorage.setItem('baaki_auth_token', token);
+    } else {
+      sessionStorage.removeItem('baaki_auth_token');
+      localStorage.removeItem('baaki_auth_token');
+    }
+  }
+}
+
+export function getAuthToken() {
+  if (inMemoryToken) return inMemoryToken;
+  if (typeof window !== 'undefined') {
+    const s = sessionStorage.getItem('baaki_auth_token') || localStorage.getItem('baaki_auth_token');
+    if (s) {
+      inMemoryToken = s;
+      return s;
+    }
+  }
+  return null;
+}
+
+export function clearAuthToken() {
+  inMemoryToken = null;
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem('baaki_auth_token');
+    localStorage.removeItem('baaki_auth_token');
+  }
+}
+
+// Global promise lock to prevent multiple concurrent refresh calls
+let refreshSessionPromise = null;
+
+export async function requestSilentDemoToken() {
+  if (refreshSessionPromise) {
+    return refreshSessionPromise;
+  }
+
+  refreshSessionPromise = (async () => {
+    try {
+      const url = `${API_BASE_URL || '/api'}/auth/demo-login`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        throw new Error(`Demo login failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (data && data.token) {
+        setAuthToken(data.token);
+        return data.token;
+      }
+      throw new Error('No token returned from demo login');
+    } finally {
+      refreshSessionPromise = null;
+    }
+  })();
+
+  return refreshSessionPromise;
+}
+
+async function request(endpoint, options = {}, isRetry = false) {
   if (isProd && !API_BASE_URL) {
     throw new ApiError(
       'Missing VITE_API_URL: This production build was created without the VITE_API_URL environment variable. Vite embeds env variables into client JavaScript bundles at build time. Please set VITE_API_URL in your hosting platform (e.g. Vercel) and trigger a redeploy.',
@@ -39,7 +112,7 @@ async function request(endpoint, options = {}) {
 
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
-  const token = typeof window !== 'undefined' ? localStorage.getItem('baaki_auth_token') : null;
+  const token = getAuthToken();
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -65,6 +138,20 @@ async function request(endpoint, options = {}) {
       0,
       null
     );
+  }
+
+  // Handle 401: Auto-refresh silent demo token once and retry original request
+  const isAuthRoute = endpoint.includes('/auth/demo-login') || endpoint.includes('/public/pay');
+  if (response.status === 401 && !isRetry && !isAuthRoute) {
+    try {
+      const newToken = await requestSilentDemoToken();
+      if (newToken) {
+        return await request(endpoint, options, true);
+      }
+    } catch (refreshErr) {
+      console.error('Silent demo session refresh failed:', refreshErr);
+      // Fall through to throw standard ApiError
+    }
   }
 
   let data = null;

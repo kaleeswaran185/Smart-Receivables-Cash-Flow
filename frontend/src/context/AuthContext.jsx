@@ -1,77 +1,54 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { getAuthToken, requestSilentDemoToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(() => localStorage.getItem('baaki_auth_token'));
+  const [token, setToken] = useState(() => getAuthToken());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [demoMode, setDemoMode] = useState(true);
 
-  // Check existing session
+  // Initialize silent demo session on app start
   useEffect(() => {
-    async function checkAuth() {
+    let isMounted = true;
+
+    async function initSession() {
+      // If we are on a public payment link (/pay/:token), do not block
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/pay/')) {
+        if (isMounted) setLoading(false);
+        return;
+      }
+
       try {
-        const config = await api.get('/auth/config');
-        if (config && config.demo_mode !== undefined) {
-          setDemoMode(config.demo_mode);
+        let currentToken = getAuthToken();
+        if (!currentToken) {
+          currentToken = await requestSilentDemoToken();
         }
 
-        const currentToken = localStorage.getItem('baaki_auth_token');
-        if (currentToken) {
-          const res = await api.get('/auth/me');
-          if (res && res.authenticated) {
-            setUser(res.user);
-          } else {
-            localStorage.removeItem('baaki_auth_token');
-            setUser(null);
-            setToken(null);
-          }
+        if (currentToken && isMounted) {
+          setToken(currentToken);
+          setUser({ email: 'owner@baaki.app', role: 'owner', demo: true });
         }
       } catch (err) {
-        // Not authenticated
-        setUser(null);
+        console.error('Failed to establish silent demo session:', err);
+        if (isMounted) {
+          setError(err.message || 'Unable to establish demo session');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
-    checkAuth();
+    initSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
-  const login = async (email, password) => {
-    const res = await api.post('/auth/login', { email, password });
-    if (res && res.token) {
-      localStorage.setItem('baaki_auth_token', res.token);
-      setToken(res.token);
-      setUser(res.user);
-      return res;
-    }
-    throw new Error('Login failed: invalid response');
-  };
-
-  const loginDemo = async () => {
-    const res = await api.post('/auth/demo-login', {});
-    if (res && res.token) {
-      localStorage.setItem('baaki_auth_token', res.token);
-      setToken(res.token);
-      setUser(res.user);
-      return res;
-    }
-    throw new Error('Demo login failed');
-  };
-
-  const logout = async () => {
-    try {
-      await api.post('/auth/logout', {});
-    } catch {
-      // ignore
-    }
-    localStorage.removeItem('baaki_auth_token');
-    setToken(null);
-    setUser(null);
-  };
 
   return (
     <AuthContext.Provider
@@ -79,11 +56,9 @@ export function AuthProvider({ children }) {
         user,
         token,
         loading,
+        error,
         demoMode,
-        isAuthenticated: Boolean(user || token),
-        login,
-        loginDemo,
-        logout
+        isAuthenticated: true
       }}
     >
       {children}

@@ -14,25 +14,17 @@ import {
   Calendar,
   Building2,
   Menu,
-  X,
-  LogOut
+  X
 } from 'lucide-react';
 
 import { useTranslation } from '../../utils/i18n';
-import { useAuth } from '../../context/AuthContext';
 
 export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { demoDate, business } = useDemo();
-  const { logout } = useAuth();
   const { t, language, setLanguage } = useTranslation();
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
 
   const toggleLanguage = () => {
     setLanguage(language === 'hi' ? 'en' : 'hi');
@@ -147,14 +139,6 @@ export function AppLayout() {
             <span className="text-slate-400">Safety Buffer</span>
             <span className="font-semibold text-white">₹5,00,000</span>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-850 text-slate-300 hover:text-white flex items-center justify-center gap-2 text-xs font-medium transition-colors cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5 text-rose-400" />
-            <span>Sign Out</span>
-          </button>
         </div>
       </aside>
 
@@ -239,19 +223,9 @@ export function AppLayout() {
               })}
             </div>
 
-            <div className="pt-6 border-t border-slate-800 text-center space-y-4">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full min-h-[48px] py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 border border-slate-700 flex items-center justify-center gap-2 text-sm font-semibold transition-colors cursor-pointer"
-              >
-                <LogOut className="w-4 h-4 text-rose-400" />
-                <span>Sign Out</span>
-              </button>
-              <div>
-                <div className="text-sm font-semibold text-white">Sharma Packaging, Pune</div>
-                <div className="text-xs text-slate-400 mt-1">Baaki Smart Receivables Assistant</div>
-              </div>
+            <div className="pt-6 border-t border-slate-800 text-center space-y-2">
+              <div className="text-sm font-semibold text-white">Sharma Packaging, Pune</div>
+              <div className="text-xs text-slate-400">Baaki Smart Receivables Assistant</div>
             </div>
           </div>
         )}
@@ -288,16 +262,6 @@ export function AppLayout() {
             >
               <Plus className="w-4 h-4" />
               <span>{t('new_invoice', 'New Invoice')}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="min-h-[48px] px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
-              title="Sign Out"
-            >
-              <LogOut className="w-3.5 h-3.5 text-rose-500" />
-              <span className="hidden lg:inline">Sign Out</span>
             </button>
           </div>
         </div>

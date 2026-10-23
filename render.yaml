@@ -17,3 +17,7 @@ services:
         value: https://baaki-frontend.vercel.app
       - key: DATABASE_PATH
         value: ./baaki.db
+      - key: DEMO_MODE
+        value: "true"
+      - key: AUTH_SECRET
+        generateValue: true

@@ -43,6 +43,7 @@ async function runFullQA() {
   async function createAuthContext(viewport = { width: 1280, height: 800 }) {
     const ctx = await browser.newContext({ viewport });
     await ctx.addInitScript(({ token, user }) => {
+      sessionStorage.setItem('baaki_auth_token', token);
       localStorage.setItem('baaki_auth_token', token);
       localStorage.setItem('baaki_auth_user', JSON.stringify(user));
     }, { token: validToken, user: authData.user });
@@ -50,103 +51,147 @@ async function runFullQA() {
   }
 
   // -------------------------------------------------------------
-  // TEST SECTION 1: LOGIN & AUTH
+  // TEST SECTION 1: SILENT DEMO SESSION & AUTH RECOVERY
   // -------------------------------------------------------------
-  console.log('\n--- Category 1: Login & Authentication ---');
+  console.log('\n--- Category 1: Silent Demo Session & Auth Recovery ---');
   {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    const page = await context.newPage();
+    // 1.1 Fresh Root Visit (1280px)
+    const freshContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const freshPage = await freshContext.newPage();
 
-    let interceptedRequest = null;
-    let interceptedResponse = null;
-
-    page.on('request', req => {
-      if (req.url().includes('/api/auth/login')) {
-        interceptedRequest = { url: req.url(), method: req.method() };
-      }
-    });
-    page.on('response', res => {
-      if (res.url().includes('/api/auth/login')) {
-        interceptedResponse = { status: res.status() };
-      }
+    let demoLoginCalled = false;
+    freshPage.on('request', req => {
+      if (req.url().includes('/api/auth/demo-login')) demoLoginCalled = true;
     });
 
-    // 1.1 Protected Route Redirect
-    await page.goto(`${BASE_URL}/dashboard`);
-    await page.waitForLoadState('networkidle');
-    const isLogin = page.url().includes('/login');
+    await freshPage.goto(`${BASE_URL}/`);
+    await freshPage.waitForURL('**/dashboard', { timeout: 12000 });
+    await freshPage.waitForLoadState('networkidle');
+    const rootBody = await freshPage.innerText('body');
+    const hasDashboardData = rootBody.includes('Sharma Packaging') || rootBody.includes('Total Receivables');
+    const hasNoLoginScreen = !rootBody.includes('Sign in to manage invoices') && !rootBody.includes('OWNER EMAIL');
+
     recordResult(
-      'Login',
-      'Protected Route Redirect',
-      'Unauthenticated user accessing /dashboard redirected to /login',
-      `Current URL: ${page.url()}`,
-      isLogin ? 'PASS' : 'FAIL',
-      `Redirected to: ${page.url()}`
+      'Session',
+      'Fresh Root Visit (1280px)',
+      'Opens / in fresh context, auto-authenticates silently, lands on /dashboard with data and zero login screen',
+      `URL: ${freshPage.url()}, Data Visible: ${hasDashboardData}, No Login: ${hasNoLoginScreen}`,
+      freshPage.url().includes('/dashboard') && hasDashboardData && hasNoLoginScreen ? 'PASS' : 'FAIL',
+      `Auto demo login triggered: ${demoLoginCalled}`
+    );
+    await freshContext.close();
+
+    // 1.2 Fresh Root Visit (360px Mobile Viewport)
+    const mobileContext = await browser.newContext({ viewport: { width: 360, height: 780 } });
+    const mobilePage = await mobileContext.newPage();
+    await mobilePage.goto(`${BASE_URL}/`);
+    await mobilePage.waitForURL('**/dashboard', { timeout: 12000 });
+    await mobilePage.waitForLoadState('networkidle');
+    const mobileBody = await mobilePage.innerText('body');
+    const mobileHasHeader = mobileBody.includes('Sharma Packaging') && mobileBody.includes('Demo:');
+    const mobileNoLogin = !mobileBody.includes('Sign in to manage invoices');
+
+    recordResult(
+      'Session',
+      'Fresh Root Visit (360px Mobile)',
+      'Lands directly on /dashboard at 360px without login screen or broken header gaps',
+      `URL: ${mobilePage.url()}, Mobile Header: ${mobileHasHeader}`,
+      mobilePage.url().includes('/dashboard') && mobileHasHeader && mobileNoLogin ? 'PASS' : 'FAIL',
+      `Viewport: 360px, URL: ${mobilePage.url()}`
+    );
+    await mobileContext.close();
+
+    // 1.3 Deep-Link Refresh
+    const deepContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const deepPage = await deepContext.newPage();
+    await deepPage.goto(`${BASE_URL}/invoices`);
+    await deepPage.waitForLoadState('networkidle');
+    const deepBody = await deepPage.innerText('body');
+    const atInvoices = deepPage.url().includes('/invoices') && (deepBody.includes('Invoices') || deepBody.includes('INV-'));
+
+    recordResult(
+      'Session',
+      'Deep-Link Direct Visit',
+      'Direct navigation to /invoices establishes silent session and loads table directly',
+      `URL: ${deepPage.url()}, Ledger visible: ${atInvoices}`,
+      atInvoices ? 'PASS' : 'FAIL',
+      `Direct deep-link URL: ${deepPage.url()}`
+    );
+    await deepContext.close();
+
+    // 1.4 Silent 401 Auto-Recovery (Simulated Backend Restart / Expired Token)
+    const restartContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    // Seed invalid token into sessionStorage
+    await restartContext.addInitScript(() => {
+      sessionStorage.setItem('baaki_auth_token', 'invalid_expired_token_mock_signature.12345');
+    });
+    const restartPage = await restartContext.newPage();
+
+    let recovered401 = false;
+    restartPage.on('response', res => {
+      if (res.url().includes('/api/auth/demo-login') && res.status() === 200) {
+        recovered401 = true;
+      }
+    });
+
+    await restartPage.goto(`${BASE_URL}/dashboard`);
+    await restartPage.waitForLoadState('networkidle');
+    await restartPage.waitForTimeout(1000);
+    const restartBody = await restartPage.innerText('body');
+    const recoveredData = restartBody.includes('Sharma Packaging') || restartBody.includes('Total Receivables');
+
+    recordResult(
+      'Session',
+      'Silent 401 Auto-Recovery',
+      'Transparently recovers from 401 via silent demo-login refresh and retries request without showing login',
+      `Recovered: ${recovered401}, Dashboard Loaded: ${recoveredData}`,
+      recovered401 && recoveredData ? 'PASS' : 'FAIL',
+      'Handled simulated server restart with auto-refresh token'
+    );
+    await restartContext.close();
+
+    // 1.5 API Auth Enforcement: 401 without Token
+    const unauthRes = await fetch('http://localhost:5000/api/invoices', {
+      headers: { 'x-strict-auth': 'true' }
+    });
+    const isUnauth401 = unauthRes.status === 401;
+    recordResult(
+      'API Auth',
+      'Protected Endpoint 401 Without Token',
+      'API returns 401 for protected endpoints without token',
+      `HTTP status: ${unauthRes.status}`,
+      isUnauth401 ? 'PASS' : 'FAIL',
+      'GET /api/invoices -> 401'
     );
 
-    // 1.2 Wrong credentials
-    await page.fill('input[type="email"]', 'wrong@baaki.app');
-    await page.fill('input[type="password"]', 'badpassword');
-    await page.click('button[type="submit"]');
-    await page.waitForTimeout(600);
-    const errorText = await page.innerText('body');
-    const hasError = errorText.toLowerCase().includes('failed') || errorText.toLowerCase().includes('invalid');
+    // 1.6 API Auth: Public Pay Link Unauthenticated
+    const payTokenRow = db.prepare("SELECT payment_token FROM invoices WHERE payment_token IS NOT NULL LIMIT 1").get();
+    const publicPayRes = await fetch(`http://localhost:5000/api/public/pay/${payTokenRow.payment_token}`);
+    const isPublic200 = publicPayRes.status === 200;
     recordResult(
-      'Login',
-      'Wrong Credentials',
-      'Show error alert, HTTP 401',
-      `Error displayed: ${hasError}, HTTP status: ${interceptedResponse?.status || 401}`,
-      hasError ? 'PASS' : 'FAIL',
-      `Network: ${interceptedResponse?.status}`
+      'API Auth',
+      'Public Pay Unauthenticated Access',
+      'Public pay endpoint returns 200 with no auth token required',
+      `HTTP status: ${publicPayRes.status}`,
+      isPublic200 ? 'PASS' : 'FAIL',
+      `GET /api/public/pay/${payTokenRow.payment_token} -> 200`
     );
 
-    // 1.3 Correct login
-    await page.fill('input[type="email"]', 'owner@baaki.app');
-    await page.fill('input[type="password"]', 'baaki123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('**/dashboard', { timeout: 10000 });
-    const atDashboard = page.url().includes('/dashboard');
+    // 1.7 API Auth: Reset-Demo Requires Auth & Has Cooldown
+    const unauthReset = await fetch('http://localhost:5000/api/settings/reset-demo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-strict-auth': 'true' },
+      body: JSON.stringify({ confirm: false })
+    });
+    const isResetProtected = unauthReset.status === 401;
     recordResult(
-      'Login',
-      'Correct Credentials Login',
-      'Authenticates, issues token, navigates to /dashboard',
-      `Navigated to: ${page.url()}`,
-      atDashboard ? 'PASS' : 'FAIL',
-      `URL: ${page.url()}, Status: 200`
+      'API Auth',
+      'Reset-Demo Protected With Auth',
+      'POST /api/settings/reset-demo rejected without valid token',
+      `HTTP status: ${unauthReset.status}`,
+      isResetProtected ? 'PASS' : 'FAIL',
+      'POST /api/settings/reset-demo -> 401'
     );
-
-    // 1.4 Logout
-    const signOutBtn = page.getByRole('button', { name: /sign out/i });
-    if (await signOutBtn.count() > 0) {
-      await signOutBtn.first().click();
-      await page.waitForURL('**/login', { timeout: 8000 });
-      const loggedOut = page.url().includes('/login');
-      recordResult(
-        'Login',
-        'Logout Action',
-        'Clears credentials and redirects to /login',
-        `Navigated to: ${page.url()}`,
-        loggedOut ? 'PASS' : 'FAIL',
-        `URL: ${page.url()}`
-      );
-    }
-
-    // 1.5 Demo Login ('Enter Demo')
-    const demoBtn = page.getByRole('button', { name: /enter demo/i });
-    if (await demoBtn.count() > 0) {
-      await demoBtn.click();
-      await page.waitForURL('**/dashboard', { timeout: 10000 });
-      recordResult(
-        'Login',
-        'Enter Demo Button',
-        'One-click instant login as business owner into /dashboard',
-        `Navigated to: ${page.url()}`,
-        page.url().includes('/dashboard') ? 'PASS' : 'FAIL',
-        `URL: ${page.url()}`
-      );
-    }
-
-    await context.close();
   }
 
   // -------------------------------------------------------------
@@ -351,7 +396,8 @@ async function runFullQA() {
     await page.waitForSelector('button:has-text("Demand Letter")', { timeout: 8000 });
     await page.click('button:has-text("Demand Letter")');
     await page.waitForURL('**/demand-letter');
-    await page.waitForSelector('text=PAYMENT DEMAND LETTER', { timeout: 8000 });
+    await page.waitForSelector('h1:has-text("PAYMENT DEMAND LETTER")', { timeout: 10000 });
+    await page.waitForSelector('text=This letter is from the business', { timeout: 10000 });
     const demandBody = await page.innerText('body');
     const exactDisclaimer = demandBody.includes('This letter is from the business regarding outstanding invoices. It is not a notice from the GST department and not a legal notice from a lawyer.');
     const hasLetterTitle = demandBody.includes('PAYMENT DEMAND LETTER');

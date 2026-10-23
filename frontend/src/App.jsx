@@ -5,7 +5,7 @@ import ServerWakeupGuard from './components/common/ServerWakeupGuard';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DemoProvider } from './context/DemoContext';
 import AppLayout from './components/layout/AppLayout';
-import LoginPage from './pages/LoginPage';
+import { Loading } from './components/common/Loading';
 import DashboardPage from './pages/DashboardPage';
 import InvoicesPage from './pages/InvoicesPage';
 import NewInvoicePage from './pages/NewInvoicePage';
@@ -21,16 +21,26 @@ import PrintInvoicePage from './pages/PrintInvoicePage';
 import DemandLetterPage from './pages/DemandLetterPage';
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { loading, error } = useAuth();
   if (loading) {
+    return <Loading fullPage message="Connecting to secure demo session..." />;
+  }
+  if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-indigo-500"></div>
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 text-white">
+        <div className="max-w-md w-full bg-slate-800 border border-rose-500/30 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+          <h2 className="text-xl font-bold text-white">Unable to Start Demo Session</h2>
+          <p className="text-sm text-slate-300">{error}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors"
+          >
+            Retry Connection
+          </button>
+        </div>
       </div>
     );
-  }
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
   }
   return children;
 }
@@ -42,8 +52,8 @@ export default function App() {
         <AuthProvider>
           <DemoProvider>
             <Routes>
-              {/* Owner Authentication */}
-              <Route path="/login" element={<LoginPage />} />
+              {/* Root redirect directly to dashboard */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
               {/* Standalone Public Customer Payment Page */}
               <Route path="/pay/:token" element={<PublicPayPage />} />

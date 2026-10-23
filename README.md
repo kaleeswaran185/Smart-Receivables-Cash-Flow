@@ -15,18 +15,18 @@
 
 ---
 
-## 🔑 Demo Access & Login Credentials
+## 🔑 Instant Demo Access & Authentication Architecture
 
-Baaki features pre-seeded, realistic Indian business data so evaluators and business owners can immediately explore the entire platform without manual setup.
+Baaki runs in **zero-friction demo mode** by default. Opening the app lands immediately on the Executive Dashboard with pre-seeded, realistic Indian business data (Sharma Packaging Solutions Pvt Ltd). No manual credentials or login screen required.
 
-| Parameter | Value |
-|---|---|
-| **Demo Login Mode** | Enabled (via `DEMO_MODE=true`) |
-| **Business Owner Email** | `owner@baaki.app` |
-| **Password** | `baaki123` |
-| **One-Click Login** | Click **"⚡ One-Click Demo Login"** on the `/login` screen |
-| **Reset Demo Cooldown** | 60 seconds (rate-limited against spam/abuse) |
-| **Public Pay Links** | Fully accessible with zero login required at `/pay/:token` |
+| Parameter | Configuration | Details |
+|---|---|---|
+| **Demo Session** | Automated & Silent | App starts by silently requesting a Bearer token via `POST /api/auth/demo-login` kept in memory and `sessionStorage`. |
+| **Token Auto-Refresh** | Automatic on 401 | On any 401 response (e.g. server restart), the API client transparently refreshes the session once and retries the request. |
+| **Backend Environment** | `DEMO_MODE=true` | Required in production for silent demo authentication. Logs a clear warning if false. |
+| **Security Secret** | `AUTH_SECRET` | Cryptographic secret for signing session HMAC tokens. Strictly required in production from env. |
+| **Reset Demo Cooldown** | 60 seconds | Rate-limited against abuse (with explicit confirmation bypass for testing). |
+| **Public Pay Links** | Fully Public | Zero authentication required at `/pay/:token` for customer payment settlement. |
 
 ---
 
