@@ -5,6 +5,12 @@ import { seedDatabase } from './seed.js';
 
 dotenv.config();
 
+// In production, the server must refuse to start without AUTH_SECRET from env
+if (process.env.NODE_ENV === 'production' && (!process.env.AUTH_SECRET || !process.env.AUTH_SECRET.trim())) {
+  console.error('FATAL CONFIGURATION ERROR: AUTH_SECRET environment variable is strictly required in production mode with no fallback.');
+  process.exit(1);
+}
+
 const PORT = process.env.PORT || 5000;
 
 // Initialize database and run seed automatically if DB is empty

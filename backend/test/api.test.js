@@ -144,7 +144,7 @@ describe('SPEC Tests 9 to 11: REST APIs, Payments & Reliability Stats', () => {
     assert.equal(partialData.invoice.paid_paise, 400000);
     assert.equal(partialData.invoice.balance_paise, 780000); // 1180000 - 400000
 
-    // 3. Sub-test: Overpayment is flagged & rejected
+    // 3. Sub-test: Overpayment requires confirmation and is held as credit (replaces 400 error)
     // Remaining balance is ₹7,800 (780000 paise). Attempting to pay ₹8,000 (800000 paise).
     const overpayRes = await fetch(`${baseUrl}/payments`, {
       method: 'POST',
@@ -155,10 +155,12 @@ describe('SPEC Tests 9 to 11: REST APIs, Payments & Reliability Stats', () => {
       })
     });
 
-    assert.equal(overpayRes.status, 400);
+    assert.equal(overpayRes.status, 200);
     const overpayData = await overpayRes.json();
-    assert.equal(overpayData.error, 'OVERPAYMENT_FLAGGED');
-    assert.equal(overpayData.invoiceBalancePaise, 780000);
+    assert.equal(overpayData.requiresConfirmation, true);
+    assert.equal(overpayData.overpayment, true);
+    assert.equal(overpayData.code, 'OVERPAYMENT_CONFIRMATION_REQUIRED');
+    assert.equal(overpayData.currentBalancePaise, 780000);
 
     // 4. Sub-test: Full payment WITHOUT explicit confirmation must NOT auto-mark paid
     const fullNoConfirmRes = await fetch(`${baseUrl}/payments`, {

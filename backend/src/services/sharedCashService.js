@@ -390,11 +390,38 @@ export function getSharedCashModel(db, options = {}) {
   // Sort chase list by score DESC
   chaseList.sort((a, b) => b.score - a.score || b.balance_paise - a.balance_paise);
 
+  // Smallest set (at most 3, ranked by priority) with cumulative amount vs shortfall
   const gapCoveringInvoices = [];
   if (firstShortageWeek) {
     const neededPaise = firstShortageWeek.deficitPaise;
-    scheduledCollections.forEach(inv => {
-      if (inv.balance_paise >= neededPaise) {
+    
+    // Evaluate candidates from priority chaseList
+    const priorityCandidates = chaseList.filter(inv => inv.balance_paise > 0);
+
+    // 1. Try single invoice (smallest set = 1)
+    const single = priorityCandidates.find(inv => inv.balance_paise >= neededPaise);
+    if (single) {
+      gapCoveringInvoices.push({
+        invoice_id: single.invoice_id,
+        invoice_number: single.invoice_number,
+        customer_name: single.customer_name,
+        balance_paise: single.balance_paise,
+        formatted_balance: formatIndianCurrency(single.balance_paise),
+        due_date: single.due_date,
+        status: 'OVERDUE',
+        score: single.score,
+        cumulative_amount_paise: single.balance_paise,
+        formatted_cumulative_amount: formatIndianCurrency(single.balance_paise),
+        shortfall_paise: neededPaise,
+        formatted_shortfall: firstShortageWeek.formattedDeficit,
+        coverage_percentage: Math.round((single.balance_paise / neededPaise) * 100),
+        covers_entire_deficit: true
+      });
+    } else {
+      // 2. Accumulate up to 3 priority invoices
+      let runningSum = 0;
+      for (const inv of priorityCandidates.slice(0, 3)) {
+        runningSum += inv.balance_paise;
         gapCoveringInvoices.push({
           invoice_id: inv.invoice_id,
           invoice_number: inv.invoice_number,
@@ -403,12 +430,17 @@ export function getSharedCashModel(db, options = {}) {
           formatted_balance: formatIndianCurrency(inv.balance_paise),
           due_date: inv.due_date,
           status: 'OVERDUE',
-          coverage_percentage: Math.round((inv.balance_paise / neededPaise) * 100),
-          covers_entire_deficit: true
+          score: inv.score,
+          cumulative_amount_paise: runningSum,
+          formatted_cumulative_amount: formatIndianCurrency(runningSum),
+          shortfall_paise: neededPaise,
+          formatted_shortfall: firstShortageWeek.formattedDeficit,
+          coverage_percentage: Math.round((runningSum / neededPaise) * 100),
+          covers_entire_deficit: runningSum >= neededPaise
         });
+        if (runningSum >= neededPaise) break;
       }
-    });
-    gapCoveringInvoices.sort((a, b) => b.balance_paise - a.balance_paise);
+    }
   }
 
   return {

@@ -168,6 +168,39 @@ router.post('/', (req, res) => {
       return res.status(404).json({ error: 'INVOICE_NOT_FOUND', message: 'Invoice does not exist' });
     }
 
+    // Check idempotency: if reference_no is supplied and already recorded, return existing record
+    const cleanRef = reference_no ? reference_no.trim() : null;
+    if (cleanRef) {
+      const existingPay = db.prepare('SELECT * FROM payments WHERE invoice_id = ? AND reference_no = ?').get(invoice.id, cleanRef);
+      if (existingPay) {
+        const existingInvoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(invoice.id);
+        const existingCredit = db.prepare('SELECT * FROM customer_credits WHERE payment_id = ?').get(existingPay.id);
+        return res.status(200).json({
+          success: true,
+          alreadyRecorded: true,
+          overpayment: Boolean(existingPay.is_overpayment),
+          payment: {
+            ...existingPay,
+            formatted_amount: formatIndianCurrency(existingPay.amount_paise)
+          },
+          credit: existingCredit ? {
+            amount_paise: existingCredit.amount_paise,
+            formatted_amount: formatIndianCurrency(existingCredit.amount_paise)
+          } : null,
+          invoice: {
+            id: existingInvoice.id,
+            invoice_number: existingInvoice.invoice_number,
+            status: existingInvoice.status,
+            paid_paise: existingInvoice.paid_paise,
+            balance_paise: existingInvoice.balance_paise,
+            formatted_paid: formatIndianCurrency(existingInvoice.paid_paise),
+            formatted_balance: formatIndianCurrency(existingInvoice.balance_paise)
+          },
+          message: 'Payment was already recorded with this reference number (retry skipped safely)'
+        });
+      }
+    }
+
     if (invoice.status === 'PAID' || invoice.balance_paise === 0) {
       return res.status(400).json({ error: 'INVOICE_ALREADY_PAID', message: 'Invoice is already settled in full' });
     }
@@ -176,26 +209,34 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'INVOICE_CANCELLED', message: 'Cannot record payment on a cancelled invoice' });
     }
 
-    // Rule: Overpayment is flagged & recorded as customer credit (never auto-applied)
+    // Rule: Overpayment is held as customer credit upon confirmation (never auto-applied to other invoices)
     let isOverpayment = false;
     let overpaymentPaise = 0;
+    const isExplicitlyConfirmed = (confirm === true || confirmPaid === true || recordCredit === true || allowOverpayment === true);
+
     if (parsedAmountPaise > invoice.balance_paise) {
-      if (allowOverpayment || recordCredit) {
+      if (isExplicitlyConfirmed) {
         isOverpayment = true;
         overpaymentPaise = parsedAmountPaise - invoice.balance_paise;
       } else {
-        return res.status(400).json({
-          error: 'OVERPAYMENT_FLAGGED',
-          message: `Payment amount (${formatIndianCurrency(parsedAmountPaise)}) exceeds the invoice outstanding balance (${formatIndianCurrency(invoice.balance_paise)}). Overpayment is recorded as customer credit only upon confirmation.`,
-          invoiceBalancePaise: invoice.balance_paise,
-          paymentAmountPaise: parsedAmountPaise,
-          overpaymentPaise: parsedAmountPaise - invoice.balance_paise
+        // Return 200 with requiresConfirmation rather than 400 error
+        return res.status(200).json({
+          requiresConfirmation: true,
+          overpayment: true,
+          code: 'OVERPAYMENT_CONFIRMATION_REQUIRED',
+          warning: 'Payment exceeds invoice balance',
+          message: `Payment amount (${formatIndianCurrency(parsedAmountPaise)}) exceeds the invoice outstanding balance (${formatIndianCurrency(invoice.balance_paise)}) by ${formatIndianCurrency(parsedAmountPaise - invoice.balance_paise)}. Please confirm to record payment and hold the excess as customer credit.`,
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoice_number,
+          amountPaise: parsedAmountPaise,
+          currentBalancePaise: invoice.balance_paise,
+          overpaymentPaise: parsedAmountPaise - invoice.balance_paise,
+          formattedOverpayment: formatIndianCurrency(parsedAmountPaise - invoice.balance_paise)
         });
       }
     }
 
     const isFullSettlement = (parsedAmountPaise >= invoice.balance_paise);
-    const isExplicitlyConfirmed = (confirm === true || confirmPaid === true);
 
     // Rule: A payment must never auto-mark an invoice paid without an explicit confirm step
     if (isFullSettlement && !isExplicitlyConfirmed && !isOverpayment) {

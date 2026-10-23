@@ -57,8 +57,16 @@ export function generateMessageText({ stage, invoice, customer, business, payUrl
  * Evaluates the current reminder status for an invoice.
  * Determines eligible stage, whether paused, already sent, etc.
  */
-export function evaluateInvoiceReminder(db, invoice, today = null) {
+export function evaluateInvoiceReminder(db, invoiceOrId, today = null) {
   if (!today) today = getToday(db);
+
+  const invoice = typeof invoiceOrId === 'object' && invoiceOrId !== null
+    ? invoiceOrId
+    : db.prepare('SELECT * FROM invoices WHERE id = ?').get(invoiceOrId);
+
+  if (!invoice) {
+    return { isActionable: false, status: 'NOT_FOUND', reason: 'Invoice not found' };
+  }
 
   // 1. Inactive checks
   if (invoice.balance_paise <= 0 || invoice.status === 'PAID' || invoice.status === 'CANCELLED' || invoice.status === 'DRAFT') {

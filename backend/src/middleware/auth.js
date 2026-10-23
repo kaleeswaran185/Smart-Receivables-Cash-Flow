@@ -9,10 +9,18 @@ export function getOwnerCredentials() {
 }
 
 export function isDemoMode() {
-  return process.env.DEMO_MODE !== 'false';
+  if (process.env.DEMO_MODE === 'true') return true;
+  if (process.env.DEMO_MODE === 'false') return false;
+  return process.env.NODE_ENV !== 'production';
 }
 
-const AUTH_SECRET = process.env.AUTH_SECRET || 'baaki-super-secret-key-2026';
+export function getAuthSecret() {
+  const secret = process.env.AUTH_SECRET;
+  if (process.env.NODE_ENV === 'production' && (!secret || !secret.trim())) {
+    throw new Error('FATAL: AUTH_SECRET environment variable is strictly required in production with no fallback.');
+  }
+  return secret || 'baaki-development-secret-key-2026';
+}
 
 /**
  * Creates a signed base64url token with 7-day expiration.
@@ -23,8 +31,9 @@ export function createToken(payload = {}) {
     iat: Date.now(),
     exp: Date.now() + 7 * 24 * 60 * 60 * 1000
   };
+  const secret = getAuthSecret();
   const data = Buffer.from(JSON.stringify(fullPayload)).toString('base64url');
-  const signature = crypto.createHmac('sha256', AUTH_SECRET).update(data).digest('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
   return `${data}.${signature}`;
 }
 
@@ -36,7 +45,8 @@ export function verifyToken(token) {
   const parts = token.split('.');
   if (parts.length !== 2) return null;
   const [data, signature] = parts;
-  const expectedSig = crypto.createHmac('sha256', AUTH_SECRET).update(data).digest('base64url');
+  const secret = getAuthSecret();
+  const expectedSig = crypto.createHmac('sha256', secret).update(data).digest('base64url');
   if (signature !== expectedSig) return null;
 
   try {

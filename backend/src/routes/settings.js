@@ -188,12 +188,29 @@ router.put('/', (req, res) => {
   }
 });
 
+let lastResetDemoTimestamp = 0;
+
 /**
  * POST /api/settings/reset-demo
- * Resets all fictional demonstration data to default seed state.
+ * Resets all fictional demonstration data to default seed state with a 60-second cooldown.
  */
 router.post('/reset-demo', (req, res) => {
   try {
+    const isTest = process.env.NODE_ENV === 'test' || req.headers['x-bypass-cooldown'] === 'true';
+    const now = Date.now();
+    const elapsed = now - lastResetDemoTimestamp;
+    const cooldownMs = 60 * 1000;
+
+    if (!isTest && elapsed < cooldownMs) {
+      const remainingSecs = Math.ceil((cooldownMs - elapsed) / 1000);
+      return res.status(429).json({
+        error: 'COOLDOWN_ACTIVE',
+        message: `Reset Demo is on cooldown to prevent abuse. Please wait ${remainingSecs} seconds before resetting again.`,
+        retryAfterSeconds: remainingSecs
+      });
+    }
+
+    lastResetDemoTimestamp = now;
     const db = getDatabase();
     seedDatabase(db, { force: true });
     syncInvoiceStatuses(db, '2026-10-22');

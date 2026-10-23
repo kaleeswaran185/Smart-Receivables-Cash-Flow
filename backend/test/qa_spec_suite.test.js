@@ -299,7 +299,7 @@ describe('QA SPEC SUITE: T21 to T43 Verification', () => {
     `).run(biz.id, cust.id);
     const invId2 = invInsert2.lastInsertRowid;
 
-    // 1. Without recordCredit: true -> overpayment is flagged (400 OVERPAYMENT_FLAGGED)
+    // 1. Without confirmation: overpayment requires confirmation and is not auto-applied
     const unconfirmedRes = await fetch(`${baseUrl}/payments`, {
       method: 'POST',
       headers: {
@@ -315,9 +315,11 @@ describe('QA SPEC SUITE: T21 to T43 Verification', () => {
         reference_no: 'UTR_OVERPAY_TEST_0'
       })
     });
-    assert.equal(unconfirmedRes.status, 400);
-    const unconfirmedErr = await unconfirmedRes.json();
-    assert.equal(unconfirmedErr.error, 'OVERPAYMENT_FLAGGED', 'Overpayment must be flagged');
+    assert.equal(unconfirmedRes.status, 200);
+    const unconfirmedData = await unconfirmedRes.json();
+    assert.equal(unconfirmedData.requiresConfirmation, true);
+    assert.equal(unconfirmedData.overpayment, true);
+    assert.equal(unconfirmedData.code, 'OVERPAYMENT_CONFIRMATION_REQUIRED', 'Overpayment requires confirmation');
 
     // 2. With recordCredit: true -> recorded as 201 with overpayment_paise and credited
     const payRes = await fetch(`${baseUrl}/payments`, {

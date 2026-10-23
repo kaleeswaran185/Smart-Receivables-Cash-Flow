@@ -130,11 +130,17 @@ export function PaymentsPage() {
     const amountPaise = rupeesToPaise(amountRupees);
     const balancePaise = selectedInvoice?.balance_paise || 0;
 
-    // Check Overpayment
-    if (amountPaise > balancePaise) {
-      setFormError(
-        `Overpayment Flagged: The entered amount (${formatIndianCurrency(amountPaise)}) exceeds the invoice balance (${formatIndianCurrency(balancePaise)}). Overpayment is not permitted.`
-      );
+    // Check Overpayment -> Show clear warning confirmation instead of error
+    if (amountPaise > balancePaise && !forceConfirm) {
+      setPendingConfirmation({
+        isOverpayment: true,
+        amountPaise,
+        balancePaise,
+        overpaymentPaise: amountPaise - balancePaise,
+        invoiceNumber: selectedInvoice.invoice_number,
+        customerName: selectedInvoice.customer_name,
+        newStatus: 'PAID'
+      });
       return;
     }
 
@@ -142,7 +148,9 @@ export function PaymentsPage() {
     const isFullSettlement = (amountPaise === balancePaise);
     if (isFullSettlement && !forceConfirm) {
       setPendingConfirmation({
+        isOverpayment: false,
         amountPaise,
+        balancePaise,
         invoiceNumber: selectedInvoice.invoice_number,
         customerName: selectedInvoice.customer_name,
         newStatus: 'PAID'
@@ -152,6 +160,7 @@ export function PaymentsPage() {
 
     try {
       setSubmitting(true);
+      const isOver = amountPaise > balancePaise;
       const payload = {
         invoice_id: Number(selectedInvoiceId),
         amount_paise: amountPaise,
@@ -159,7 +168,8 @@ export function PaymentsPage() {
         payment_mode: paymentMode,
         reference_no: referenceNo?.trim() || null,
         notes: notes?.trim() || null,
-        confirm: forceConfirm
+        confirm: forceConfirm,
+        recordCredit: forceConfirm && isOver
       };
 
       await api.post('/payments', payload);
@@ -356,25 +366,47 @@ export function PaymentsPage() {
               </div>
             )}
 
-            {/* Confirmation Step (Required for Full Payment / Marking Paid) */}
+            {/* Confirmation Step (Required for Full Payment / Marking Paid / Overpayment) */}
             {pendingConfirmation ? (
               <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 space-y-4">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div>
                     <h3 className="font-extrabold text-sm text-amber-950">
-                      Confirmation Required: Mark Invoice as PAID
+                      {pendingConfirmation.isOverpayment
+                        ? 'Overpayment Warning: Hold Excess as Customer Credit'
+                        : 'Confirmation Required: Mark Invoice as PAID'}
                     </h3>
                     <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                      This payment of{' '}
-                      <strong className="text-slate-950 font-mono">
-                        {formatIndianCurrency(pendingConfirmation.amountPaise)}
-                      </strong>{' '}
-                      will completely clear the balance for{' '}
-                      <strong className="text-slate-950">Invoice {pendingConfirmation.invoiceNumber}</strong> ({pendingConfirmation.customerName}).
+                      {pendingConfirmation.isOverpayment ? (
+                        <>
+                          The entered payment of{' '}
+                          <strong className="text-slate-950 font-mono">
+                            {formatIndianCurrency(pendingConfirmation.amountPaise)}
+                          </strong>{' '}
+                          exceeds the invoice balance of{' '}
+                          <strong className="text-slate-950 font-mono">
+                            {formatIndianCurrency(pendingConfirmation.balancePaise)}
+                          </strong>{' '}
+                          by{' '}
+                          <strong className="text-emerald-800 font-mono">
+                            {formatIndianCurrency(pendingConfirmation.overpaymentPaise)}
+                          </strong>
+                          . The invoice will be settled in full, and the excess amount will be safely held as customer credit on their ledger.
+                        </>
+                      ) : (
+                        <>
+                          This payment of{' '}
+                          <strong className="text-slate-950 font-mono">
+                            {formatIndianCurrency(pendingConfirmation.amountPaise)}
+                          </strong>{' '}
+                          will completely clear the balance for{' '}
+                          <strong className="text-slate-950">Invoice {pendingConfirmation.invoiceNumber}</strong> ({pendingConfirmation.customerName}).
+                        </>
+                      )}
                     </p>
                     <p className="text-[11px] text-amber-700 mt-1 font-semibold">
-                      Under system audit rules, an invoice is never auto-marked as PAID without explicit confirmation.
+                      Under system audit rules, an invoice is never auto-marked as PAID or overpayment applied without explicit confirmation.
                     </p>
                   </div>
                 </div>
@@ -395,7 +427,13 @@ export function PaymentsPage() {
                     className="min-h-[48px] px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm flex items-center gap-1.5"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>{submitting ? 'Confirming...' : 'Yes, Confirm & Settle Invoice'}</span>
+                    <span>
+                      {submitting
+                        ? 'Confirming...'
+                        : pendingConfirmation.isOverpayment
+                        ? 'Yes, Confirm Overpayment & Hold Credit'
+                        : 'Yes, Confirm & Settle Invoice'}
+                    </span>
                   </button>
                 </div>
               </div>

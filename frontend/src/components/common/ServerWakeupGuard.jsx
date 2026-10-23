@@ -3,6 +3,33 @@ import { Server, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 
 export function ServerWakeupGuard({ children }) {
+  const isProd = import.meta.env.PROD;
+  const rawApiUrl = import.meta.env.VITE_API_URL;
+  const isMissingApiUrl = isProd && (!rawApiUrl || !rawApiUrl.trim());
+
+  if (isMissingApiUrl) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 text-white">
+        <div className="max-w-md w-full bg-slate-900 border border-rose-500/40 rounded-2xl p-6 sm:p-8 space-y-4 shadow-2xl text-center">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+            <AlertCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-white">Missing VITE_API_URL Configuration</h2>
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            This production build was deployed without the <code className="bg-slate-800 text-rose-300 px-1.5 py-0.5 rounded font-mono">VITE_API_URL</code> environment variable.
+          </p>
+          <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-left text-xs font-mono text-slate-300 space-y-1">
+            <div className="text-slate-500 text-[11px]">// Required Vercel Environment Variable:</div>
+            <div className="text-emerald-400 font-bold">VITE_API_URL=https://baaki-api.onrender.com/api</div>
+          </div>
+          <p className="text-[11px] text-amber-300">
+            Vite bakes environment variables into the bundle at build time. After setting the variable, trigger a redeploy on Vercel.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const [isServerReady, setIsServerReady] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);

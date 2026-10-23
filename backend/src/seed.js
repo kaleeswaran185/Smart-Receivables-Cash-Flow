@@ -593,6 +593,9 @@ export function seedDatabase(db, options = { force: false }) {
   console.log(`[SEED] Planned Demo Shortage: ${shortageWeek}`);
   if (forecast.firstShortageWeek) {
     console.log(`[SEED] Shortage Deficit: ${forecast.firstShortageWeek.formattedDeficit} below safety buffer of ₹5,00,000`);
+    if (forecast.gapCoveringInvoices && forecast.gapCoveringInvoices.length > 0) {
+      console.log(`[SEED] Gap-Covering Set (${forecast.gapCoveringInvoices.length} invoices, at most 3): ${forecast.gapCoveringInvoices.map(i => `${i.invoice_number} (${i.formatted_balance})`).join(', ')} -> Cumulative: ${forecast.gapCoveringInvoices[forecast.gapCoveringInvoices.length - 1].formatted_cumulative_amount} vs Shortfall: ${forecast.firstShortageWeek.formattedDeficit}`);
+    }
   }
   if (topInvoice) {
     console.log(`[SEED] Top-Ranked Chase Invoice: #${topInvoice.invoice_number} - ${topInvoice.customer_name} (Score: ${topInvoice.score}/100, Balance: ${topInvoice.formatted_balance}, Reason: "${topInvoice.reason}")`);

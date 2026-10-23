@@ -8,10 +8,42 @@
 
 | Service | Platform | URL |
 |---|---|---|
-| **Frontend Web App** | Vercel | `https://baaki-receivables.vercel.app` *(Placeholder)* |
-| **Backend REST API** | Render | `https://baaki-api.onrender.com` *(Placeholder)* |
-| **API Health Check** | Render | `https://baaki-api.onrender.com/api/health` *(Placeholder)* |
-| **Product Walkthrough Video** | YouTube | `https://youtu.be/placeholder-demo` *(Placeholder)* |
+| **Frontend Web App** | Vercel | `https://baaki-receivables.vercel.app` *(Configurable)* |
+| **Backend REST API** | Render | `https://baaki-api.onrender.com` *(Configurable)* |
+| **API Health Check** | Render | `https://baaki-api.onrender.com/api/health` |
+| **Product Walkthrough Video** | YouTube | `https://youtu.be/placeholder-demo` *(Demo)* |
+
+---
+
+## 🔑 Demo Access & Login Credentials
+
+Baaki features pre-seeded, realistic Indian business data so evaluators and business owners can immediately explore the entire platform without manual setup.
+
+| Parameter | Value |
+|---|---|
+| **Demo Login Mode** | Enabled (via `DEMO_MODE=true`) |
+| **Business Owner Email** | `owner@baaki.app` |
+| **Password** | `baaki123` |
+| **One-Click Login** | Click **"⚡ One-Click Demo Login"** on the `/login` screen |
+| **Reset Demo Cooldown** | 60 seconds (rate-limited against spam/abuse) |
+| **Public Pay Links** | Fully accessible with zero login required at `/pay/:token` |
+
+---
+
+## 📸 Application Screenshots (Desktop 1280px & Mobile 360px)
+
+Every view in Baaki is tested against both desktop (1280px) and mobile phone (360px) viewports with strict accessibility standards (zero horizontal overflow, 48px+ touch targets, and status always shown with text + color, never color alone).
+
+| Screen | Desktop View (1280px) | Mobile View (360px) |
+|---|---|---|
+| **Executive Dashboard** | [dashboard_1280.png](docs/screenshots/dashboard_1280.png) | [dashboard_360.png](docs/screenshots/dashboard_360.png) |
+| **Chase-First Priority** | [chase_first_1280.png](docs/screenshots/chase_first_1280.png) | [chase_first_360.png](docs/screenshots/chase_first_360.png) |
+| **Today's Follow-ups** | [followups_1280.png](docs/screenshots/followups_1280.png) | [followups_360.png](docs/screenshots/followups_360.png) |
+| **13-Week Cash Forecast** | [forecast_1280.png](docs/screenshots/forecast_1280.png) | [forecast_360.png](docs/screenshots/forecast_360.png) |
+| **Public Pay Portal** | [pay_page_1280.png](docs/screenshots/pay_page_1280.png) | [pay_page_360.png](docs/screenshots/pay_page_360.png) |
+| **Merchant Inbox** | [inbox_1280.png](docs/screenshots/inbox_1280.png) | [inbox_360.png](docs/screenshots/inbox_360.png) |
+| **Invoice Ledger & Detail** | [invoice_1280.png](docs/screenshots/invoice_1280.png) | [invoice_360.png](docs/screenshots/invoice_360.png) |
+| **Demand Letter Preview** | [demand_letter_print_1280.png](docs/screenshots/demand_letter_print_1280.png) | [demand_letter_print_360.png](docs/screenshots/demand_letter_print_360.png) |
 
 ---
 
@@ -32,17 +64,21 @@ Indian small and medium enterprises (MSMEs) operate on razor-thin cash flow marg
 ### 1. 13-Week Cash Forecast & Safety Buffer Shortfall Detection
 - Calculates cumulative weekly cash flow: $\text{Week } N \text{ Closing} = \text{Week } N+1 \text{ Opening}$.
 - Integrates customer payment delay behavior into expected collection dates ($\text{Due Date} + \text{Customer Avg Delay}$).
-- Alerts business owners weeks in advance of the first week dipping below their custom **Safety Buffer** (e.g. ₹5,00,000).
-- Dynamically identifies and ranks specific outstanding invoices that can bridge the cash gap.
+- Alerts business owners weeks in advance of the first week dipping below their custom **Safety Buffer** (₹5,00,000.00).
+- **Planned Demo Shortage**: **Week 3 (2026-11-05 to 2026-11-11)** dips **₹76,887.60** below the safety buffer.
+- **Smallest Gap-Covering Set**: Dynamically returns the smallest set (at most 3 invoices, ranked by priority) capable of bridging the deficit:
+  - Top Recommendation: `#INV-2026-1030` — Gurugram Retail Ventures [DEMO] (Balance: ₹6,10,650 vs Shortfall: ₹76,887.60; covers 100% of the deficit).
 - **Interactive What-If Scenarios**: Simulate what happens if a major customer delays by 30 days, a supplier payment is postponed, or a big customer pays early.
 
 ### 2. Intelligent "Chase-First" Priority Scoring (0–100)
-- Prioritizes overdue invoices not by raw amount alone, but using a multi-factor weighting algorithm:
-  - Outstanding balance magnitude.
+- Prioritizes overdue invoices using a multi-factor weighting algorithm:
+  - Outstanding balance magnitude (realistic distribution: largest invoice is 17.1% of receivables, well under 33.3%).
   - Days overdue past credit period.
   - Customer reliability rating (Grade A, B, C).
   - Immediate impact on resolving the impending cash shortage.
-- Generates human-readable actionable explanations (e.g., *"🔥 Chase First: High balance overdue 38 days; collecting this resolves Week 3 cash deficit"*).
+- **Strict Scoring Invariants**:
+  - Scoring never saturates: exactly **1 invoice at 100** (`INV-2026-1030`), with top 5 scores completely distinct (`100, 86, 78, 75, 67`).
+  - Generates clear, human-readable explanations (e.g., *"₹6,10,650 Overdue 30 days (Grade C customer). Collecting this covers the Week 3 cash deficit (₹76,887.60 below safety buffer)."*).
 
 ### 3. Multi-Channel Escalation Ladder (-3 to +45 Days)
 - **6-Stage Progressive Ladder**:
@@ -57,6 +93,7 @@ Indian small and medium enterprises (MSMEs) operate on razor-thin cash flow marg
   - Reminders pause immediately when an invoice is disputed.
   - Reminders pause upon a Promise to Pay and automatically resume if the promised date lapses without payment.
   - Partial payments maintain invoice tracking on remaining balance.
+  - Idempotent: The same reminder stage cannot be sent twice for an invoice.
 
 ### 4. Public No-Login Pay Portal (`/pay/:token`)
 - Customers receive secure, tokenized payment links without requiring an account or login.
@@ -64,27 +101,58 @@ Indian small and medium enterprises (MSMEs) operate on razor-thin cash flow marg
 - **"I've Already Paid" Self-Serve Flow**: Customers submit payment claims (mode, UTR/ref, date, notes) that land directly in the merchant's **Inbox** for verification.
 - **"Something Is Wrong" Self-Serve Dispute**: Customers raise structured disputes with disputed amounts and reasons, pausing automatic reminders instantly.
 
-### 5. Bank Statement CSV Import & Reconciliation (SPEC Section 18)
+### 5. Overpayment & Credit Handling
+- Replaces harsh 400 errors with an explicit confirmation step (`overpayment=true` and `OVERPAYMENT_CONFIRMATION_REQUIRED`).
+- The UI presents a clear amber warning card showing the exact excess amount and prompts: *"Yes, Confirm Overpayment & Hold Credit"*.
+- Excess payments are safely held in the `customer_credits` ledger for future offset.
+- Retries with the same reference number are idempotent and will never double-record.
+
+### 6. Bank Statement CSV Import & Reconciliation (SPEC Section 18)
 - Accepts standard Indian bank statement CSV exports (HDFC, ICICI, SBI, Axis).
 - **Hierarchical Auto-Matching**: Matches credits by invoice number in narration, customer name tokens, or exact balance.
 - **TDS Shortfall Detection**: Automatically identifies 1%, 2%, or 10% TDS deductions (Section 194C/J), displays shortfall hints (e.g. `⚡ 2% TDS Shortfall: ₹2,449.00`), and allows 1-click full credit with tax offset.
 - **Deterministic SHA-256 Idempotency**: Re-importing overlapping or duplicate statements skips already-staged and already-reconciled rows safely.
 - **Strict Invariant**: *"Nothing paid until I confirm"* — previewing is 100% read-only; balances only update upon explicit confirmation.
 
-### 6. GST-Compliant Document Engine
+### 7. GST-Compliant Document Engine
 - Generates print-ready **Tax Invoices** (for Regular GST), **Bills of Supply** (for Composition Scheme), and plain invoices.
 - Automated compliance note for turnover exceeding ₹5 Crore (informing recipient of standard e-invoicing provisions without false IRN claims).
 - **Formal Payment Demand Letter**: Displays exact non-legal disclaimer (*"This letter is from the business regarding outstanding invoices. It is not a notice from the GST department and not a legal notice from a lawyer"*), bank and UPI coordinates, part payment ledger, and zero government/court branding.
 - Uses clean CSS `@media print` with browser-native `window.print()` — zero third-party PDF bloat.
 
-### 7. Accessibility & Multilingual Support (English, Hindi, Hinglish)
+### 8. Accessibility & Multilingual Support (English, Hindi, Hinglish)
 - Full UI translation between **English**, **Hindi (हिन्दी)**, and **Hinglish**.
 - Dynamic font scaling: Normal (16px), Large (18px), and Extra Large (20px).
 - Strict accessible design: Status is **always text + color** (never color alone), and interactive targets maintain minimum 48px touch padding.
 
-### 8. Interactive Demo Date Simulator
-- Time-travel simulator allowing evaluators and business owners to test how ageing buckets, cash forecasts, and escalation queues respond as days advance without altering system clock.
-- One-click **Reset Demo** restores initial state in milliseconds.
+### 9. Interactive Demo Date Simulator
+- Time-travel simulator allowing evaluators to advance the application clock (e.g. +14 days to `2026-11-05`) to observe ageing shifts, reminders advancing, and cash forecasts evolving.
+- One-click **Reset Demo** restores initial state in milliseconds (with a 60-second cooldown protection).
+
+---
+
+## 🎬 18-Step End-to-End Demo Story Walkthrough
+
+Follow these 18 steps to experience the complete platform lifecycle:
+
+1. **Owner Authentication**: Visit `/login` and click **"⚡ One-Click Demo Login"** (or sign in with `owner@baaki.app` / `baaki123`).
+2. **Dashboard Overview**: Inspect the executive KPIs: Total Outstanding (~₹35.61L across 7 open invoices), Expected This Week, and Overdue totals.
+3. **Chase-First Priority**: Scroll to the Chase-First card. Notice invoice `#INV-2026-1030` (Gurugram Retail Ventures) is ranked #1 with Score `100/100`.
+4. **13-Week Cash Forecast**: Navigate to `/forecast`. Review the rolling 13-week table where Week $N$ Closing strictly equals Week $N+1$ Opening.
+5. **Shortfall Detection**: Observe the alert: **Week 3 (2026-11-05 to 2026-11-11)** is highlighted with a cash shortfall of **₹76,887.60** below the ₹5,00,000 safety buffer.
+6. **Gap-Covering Invoices**: Notice the smallest set card recommending `INV-2026-1030` (₹6,10,650 balance vs ₹76,887.60 shortfall), which will eliminate the shortage.
+7. **What-If Simulation**: Toggle the simulation buttons (e.g. "What if Gurugram delays by 30 days?") to see the deficit deepen in real-time.
+8. **Follow-ups Queue**: Go to `/followups`. Review overdue invoices scheduled on the 6-stage escalation ladder.
+9. **Omnichannel Communication**: Click the **WhatsApp** or **Email** button on any reminder card to preview the pre-filled template.
+10. **Public Pay Portal**: Navigate to `/pay/pay_inv_2026_1040_40` in a new tab or incognito window (no login required).
+11. **Instant UPI Settlement**: View the dynamic UPI QR code and deep link configured with the business VPA (`sharmapackaging@demo`).
+12. **Customer Raises Dispute**: On the pay portal, click **"Something is wrong"**, enter *"5 cartons damaged during transit [DEMO TEST]"*, and submit.
+13. **Reminder Freeze**: Return to the app. Check `/invoices` — the invoice status is updated to `DISPUTED` and reminders are paused immediately.
+14. **Merchant Inbox**: Navigate to `/inbox`. Under the **Disputes** tab, review the customer's claim.
+15. **Dispute Resolution**: Click **"Resolve Dispute"**, type resolution notes (*"Issued replacement via express courier"*), and resolve. Reminders automatically resume.
+16. **Record Settlement**: Navigate to `/payments` or click **"Record Payment"**. Settle the invoice via UPI with reference `UTR_DEMO_STORY_9999`.
+17. **Dashboard Real-Time Update**: Return to `/dashboard`. Total receivables immediately drops by the paid amount.
+18. **Time-Travel Simulator**: Go to `/settings`. Change the Demo Date to `2026-11-05` to observe invoices transitioning to higher overdue stages. When done, click **"Reset Demo Data"** to restore clean seed state.
 
 ---
 
@@ -92,158 +160,128 @@ Indian small and medium enterprises (MSMEs) operate on razor-thin cash flow marg
 
 ```
 baaki/
-├── backend/                  # Node.js + Express REST API
+├── backend/                  # Node.js + Express REST API (ESM)
 │   ├── src/
 │   │   ├── app.js            # Express application with CORS & routes
-│   │   ├── index.js          # Server entrypoint with auto-seed logic
-│   │   ├── db.js             # better-sqlite3 database connection (WAL mode)
-│   │   ├── schema.sql        # Full relational schema (13 tables, integer paise)
+│   │   ├── index.js          # Startup guard (enforces AUTH_SECRET in prod) & auto-seed
+│   │   ├── db.js             # better-sqlite3 connection with WAL mode & foreign keys
+│   │   ├── schema.sql        # Relational schema (13 tables, integer paise math)
 │   │   ├── seed.js           # Deterministic realistic Indian MSME seed data
 │   │   ├── lib/              # Core business logic
-│   │   │   ├── money.js      # Rupees <-> Paise & Indian Lakh/Crore formatting
-│   │   │   ├── gst.js        # Base-36 Mod-36 GSTIN checksum & invoice math
+│   │   │   ├── money.js      # Integer-paise math & Indian Lakh/Crore formatting
+│   │   │   ├── gst.js        # Mod-36 GSTIN verification & tax component rounding
 │   │   │   ├── customerStats.js # Customer grading (A/B/C) algorithm
-│   │   │   ├── forecast.js   # 13-week cash forecasting engine
-│   │   │   ├── chasePriority.js # 0-100 priority scoring engine
-│   │   │   ├── reminderEngine.js# 6-stage reminder ladder & templates
-│   │   │   └── bankMatcher.js# Bank statement CSV parser & match engine
-│   │   └── routes/           # Express REST endpoints
-│   └── test/                 # 42 automated unit and integration tests
+│   │   │   └── dateUtils.js  # Rolling 13-week date math
+│   │   ├── middleware/
+│   │   │   └── auth.js       # Authorization Bearer token parser & prod guard
+│   │   ├── services/
+│   │   │   ├── sharedCashService.js # Single source of truth for forecast, KPIs & chase
+│   │   │   ├── chaseService.js      # 0-100 chase scoring & dispute lists
+│   │   │   ├── reminderService.js   # 6-stage escalation ladder & templates
+│   │   │   └── forecastService.js   # 13-week cash forecasting engine
+│   │   └── routes/           # REST endpoints (/auth, /dashboard, /invoices, /payments, etc.)
+│   └── test/                 # 80 automated unit, integration, and security tests
 ├── frontend/                 # React 18 + Vite SPA
 │   ├── src/
-│   │   ├── components/       # Reusable accessible UI components
-│   │   ├── context/          # DemoContext (demo date, settings, language)
-│   │   ├── pages/            # Page controllers (Dashboard, Invoices, etc.)
-│   │   ├── services/api.js   # VITE_API_URL-driven API client (no hardcoded ports)
-│   │   └── utils/            # Money, formatting, and i18n dictionaries
+│   │   ├── components/       # Accessible UI components & ServerWakeupGuard
+│   │   ├── context/          # AuthContext & DemoContext
+│   │   ├── pages/            # Page controllers (Dashboard, Follow-ups, Forecast, etc.)
+│   │   ├── services/api.js   # VITE_API_URL-driven API client (prod-guard against missing URL)
+│   │   └── utils/            # Money, date, and i18n dictionaries
 │   └── vercel.json           # SPA routing rewrite for Vercel
+├── docs/
+│   └── screenshots/          # 16 screenshots at 1280px & 360px
 ├── sample_bank_statement.csv # Realistic sample bank statement CSV
-└── render.yaml               # Cloud deployment descriptor for Render
+└── render.yaml               # Cloud deployment descriptor for Render (Node 20.18.0)
 ```
 
 ---
 
-## 💾 Database Schema & Financial Precision
+## 🧪 Automated Test Suite (80 of 80 Passing)
 
-All monetary figures are stored as **64-bit INTEGER paise** ($₹1.00 = 100\text{ paise}$) in SQLite with foreign keys enforced and WAL (Write-Ahead Logging) enabled.
-
-### Core Tables:
-1. `business`: Profile, GSTIN, registration type, bank details, UPI ID, turnover.
-2. `customers`: Customer directory, GSTIN, state code, credit limits, credit period.
-3. `invoices`: Invoice headers, status, taxable/CGST/SGST/IGST/round-off totals, payment tokens.
-4. `invoice_items`: Line items with HSN/SAC, qty, rate, discount, GST rates (0%, 3%, 5%, 12%, 18%, 28%, 40%).
-5. `payments`: Settlement records, modes (UPI, NEFT, RTGS, CHEQUE, CASH), UTR references.
-6. `expenses`: Recurring and operational expenses categorized for cash forecast.
-7. `reminders`: Scheduled and sent reminder queue with stages, channels, and templates.
-8. `disputes`: Customer-raised and merchant-logged disputes with amounts and resolution statuses.
-9. `promises`: Structured promise-to-pay commitments with promised dates and amounts.
-10. `documents`: Generated document registry and metadata.
-11. `settings`: Key-value application state (demo date, safety buffer, language, text size).
-12. `inbox_items`: Unverified payment claims and customer dispute submissions.
-13. `bank_transactions`: Bank statement imports with SHA-256 hashes, match confidence, and TDS rates.
-
----
-
-## 🧪 Automated Test Suite (46 of 46 Passing)
-
-The backend features a comprehensive test suite executed using Node.js built-in test runner:
+The backend features a comprehensive test suite executed using Node.js built-in test runner (`node --test`):
 
 ```bash
-npm test (inside backend/)
+cd backend
+npm test
 ```
 
-### Coverage Overview:
-- **SPEC Tests 1–8**: Intra-state (CGST+SGST), Inter-state (IGST), Round-off lines, Discounts, Composition Scheme Bill of Supply, 0% GST, Invalid GSTIN format, and Mod-36 check-digit verification.
-- **SPEC Tests 9–11**: Backend total recalculation (ignoring tampered client inputs), partial/overpayment logic, and Customer Reliability Grading (A/B/C).
-- **SPEC Tests 12–17**: 13-week forecast continuity ($W_N \text{ Close} = W_{N+1} \text{ Open}$), safety buffer shortfall detection, what-if scenarios, 0-100 chase scoring, reminder escalation ladder, and public `/pay/:token` portal.
-- **SPEC Test 18**: GST documents, Payment Demand Letter disclaimers, and demo date propagation.
-- **SPEC Test 19**: SQLite file persistence across backend process restart.
-- **SPEC Test 20**: API edge cases (404s, invalid tokens, zero-item prevention, negative amounts).
-- **SPEC Section 18**: Bank statement CSV parsing, invoice # matching, customer name matching, 0.1%/1%/2%/10% TDS shortfall hints, idempotent duplicate re-import, and confirmation step.
-- **SPEC Addendum Security & Auth**: Owner login, signed session tokens, route protection on `/api/*`, rate-limiting on public `/api/public/pay/*`, helmet headers, and 1MB payload limits.
+### Test Suite Summary:
+```
+ℹ tests 80
+ℹ suites 13
+ℹ pass 80
+ℹ fail 0
+```
+
+- **Money & GST Precision (T21–T25)**:
+  - Integer-paise math only (zero floating-point numbers in money calculations).
+  - Exact 3 x ₹333 @5% outputs: intra-state CGST ₹24.98, SGST ₹24.98, round off +₹0.04, total ₹1,049.00; inter-state IGST ₹49.95, round off +₹0.05, total ₹1,049.00.
+  - Round-off boundary validation (.49 down, .50 up, negative round-off line).
+  - Indian currency words handling paise and Crores.
+  - Base-36 Mod-36 GSTIN checksum verification and state code 27 mapping to Maharashtra.
+- **Payments & Credits (T26–T28, T44)**:
+  - Pending payment does not alter balance; confirmed payment does; rejected payment does not.
+  - Self-serve "I've already paid" creates merchant inbox claim without modifying balance.
+  - Overpayment confirmation: flags overpayment, creates `customer_credits` record, and network retry does not double-record.
+- **Derived State & Ageing (T29–T30)**:
+  - Ageing buckets (0, 1, 30, 31, 60, 61, 90, 91 days).
+  - Invoice statuses transition accurately as demo date advances.
+- **Reminder Escalation Ladder (T31–T33)**:
+  - Advancing date +30 days creates only the highest due stage; earlier stages marked skipped.
+  - Concurrent POSTs for same stage: UNIQUE constraint ensures exactly one succeeds.
+  - Dispute pauses ladder; resolution resumes; promise pauses until date then resumes.
+- **Forecast & Chase-First (T34–T38)**:
+  - 13 weeks with Week $N$ closing cash strictly equal to Week $N+1$ opening cash.
+  - Overdue placed in Week 1; disputed excluded; promise date overrides expected collection date.
+  - Dashboard expected this week strictly matches Forecast Week 1 collections.
+  - Chase scoring (0–100) never saturates: at most one invoice at 100, top 5 scores distinct.
+  - First week below safety buffer highlighted, and smallest gap-covering set computed correctly.
+- **Security & Authorization (T39–T43)**:
+  - Bearer token authentication required on all private API endpoints.
+  - Public pay tokens are 128-bit crypto-random; seeded invoices use fixed constants.
+  - 60-second cooldown on demo reset.
+  - Input validation, SQL injection safety, XSS escaping, and CORS domain restriction.
+  - Clean restart persistence: SQLite data survives restart; missing DB auto-seeds.
 
 ---
 
-## 📦 Local Installation & Setup
+## ☁️ Production Deployment Guide
 
-### Prerequisites
-- **Node.js** v18.0.0 or higher
-- **npm** v9.0.0 or higher
+### 1. Backend Deployment (Render)
+1. Push this repository to GitHub.
+2. In Render, create a new service using **Blueprint** (`render.yaml`).
+3. Set the required Environment Variables:
+   - `AUTH_SECRET`: **Mandatory in production**. A 32+ character random secret (e.g. generated via `openssl rand -hex 32`). The server will **refuse to start** without this.
+   - `FRONTEND_URL`: URL of your deployed frontend (e.g., `https://baaki-receivables.vercel.app`).
+   - `DEMO_MODE`: Set to `true` to enable 1-click demo login and demo tools.
+   - `NODE_ENV`: `production`.
+   - `NODE_VERSION`: `20.18.0`.
+   - `DATABASE_PATH`: `./baaki.db` (or `/data/baaki.db` if using a mounted persistent disk).
 
-### 1. Clone & Setup Backend
-```bash
-cd baaki/backend
+#### Cold-Start & Ephemeral Disk Notes:
+- **Render Free-Tier Spin-Down**: Free instances sleep after 15 minutes of inactivity. When a user opens the frontend, Baaki displays an animated **"Waking up the server..."** overlay that polls `/api/health` with exponential backoff for up to 60 seconds until the backend is fully awake.
+- **Ephemeral Storage**: Render free-tier container filesystems reset upon redeployment or spin-down. Baaki automatically detects a missing database file on boot and runs `schema.sql` and `seed.js` to initialize fresh demo data in milliseconds. For permanent persistent storage, mount a Render Persistent Disk at `/data` and set `DATABASE_PATH=/data/baaki.db`.
 
-# Install dependencies
-npm install
-
-# Start development server (runs on port 5000 by default)
-npm start
-```
-*The database (`baaki.db` or configured `DB_PATH`) is automatically created and seeded with realistic Indian business data on first launch.*
-
-### 2. Setup Frontend
-```bash
-cd ../frontend
-
-# Install dependencies
-npm install
-
-# Start Vite dev server (runs on http://localhost:3000)
-npm run dev
-```
-
-### 3. Open in Browser
-Visit `http://localhost:3000` to access the full application.
-
----
-
-## ☁️ Production Deployment & Resilience
-
-### Free-Tier Hosting Spin-Down & Ephemeral Data Notes
-1. **Free-Tier Spin-Down Handling**:
-   - On free platforms like Render, web services spin down (sleep) after 15 minutes of inactivity.
-   - When a user opens the web application, the frontend displays an animated **"Waking up the server..."** modal that polls the `/api/health` endpoint with exponential backoff and retries for up to **60 seconds** until the backend container finishes booting.
-2. **Ephemeral Disk vs. Persistent DB**:
-   - Free cloud container environments (e.g., standard Render free instances) feature ephemeral disks: any file stored locally in the container filesystem will reset upon container restart or deployment.
-   - **Persistence Strategy**: To preserve data permanently across deployments, configure the `DB_PATH` environment variable to point to a mounted Render Persistent Disk (e.g. `/data/baaki.db`).
-   - **Auto-Seeding**: When the service boots with an empty database or freshly mounted volume, `index.js` automatically executes `schema.sql` and `seed.js` to initialize the database instantly with zero manual intervention.
-
-### Backend (Render)
-1. Push repository to GitHub.
-2. In Render, select **New > Blueprint** and select `render.yaml`.
-3. Configure environment variables:
-   - `PORT`: `10000`
-   - `FRONTEND_URL`: URL of your deployed frontend (e.g., `https://baaki-receivables.vercel.app`)
-   - `DB_PATH`: Optional path to persistent storage file (e.g., `/data/baaki.db`)
-   - `OWNER_EMAIL`: Business owner email login (e.g., `owner@baaki.app`)
-   - `OWNER_PASSWORD`: Owner password (defaults to `baaki123` in demo mode)
-   - `AUTH_SECRET`: Secret key for HMAC-SHA256 signed tokens
-   - `DEMO_MODE`: Set to `true` to enable 1-click demo login and demo tools
-   - `NODE_ENV`: `production`
-
-### Frontend (Vercel)
-1. In Vercel, import the repository and set **Root Directory** to `baaki/frontend`.
+### 2. Frontend Deployment (Vercel)
+1. In Vercel, import your repository and set the **Root Directory** to `baaki/frontend`.
 2. Framework Preset: **Vite**.
-3. Environment Variables:
-   - `VITE_API_URL`: URL of your deployed Render backend (e.g., `https://baaki-api.onrender.com/api`).
-4. `vercel.json` provides automatic SPA rewrites to `/index.html` for client-side routing.
+3. Set the Environment Variable:
+   - `VITE_API_URL`: The full URL of your deployed Render backend (e.g. `https://baaki-api.onrender.com/api`).
+4. **Important Build-Time Note**:
+   > ⚠️ **Vite Environment Variable Baking**: Vite statically replaces `import.meta.env.VITE_API_URL` into client-side JavaScript bundles during `npm run build`. Changing `VITE_API_URL` requires a redeployment on Vercel. In production builds, Baaki checks for `VITE_API_URL` and displays a visible configuration error banner if it was omitted, preventing silent failed network requests.
+5. Client-side SPA routing rewrites are pre-configured in `frontend/vercel.json`.
 
 ---
 
-## 🔒 Security & Demo Safety
+## 🔒 Security & Privacy Hardening
 
-- **Owner Authentication & Route Protection**: All `/api/*` endpoints (except `/api/health`, `/api/auth/*`, and `/api/public/pay/*`) require signed authentication tokens or session cookies.
-- **Demo Mode Safety**:
-  - All demo customers and business entities are labeled clearly with `[DEMO]`.
-  - Customer contact numbers use reserved demo prefixes (`+91 99999 1000X`).
-  - WhatsApp chase links for demo contacts open generic `wa.me/?text=...` with **no phone number**, preventing accidental messaging of real mobile subscribers.
-  - Demo UPI ID uses fictional `@demo` handle (`sharmapackaging@demo`).
-  - All generated PANs feature `Z` as their 4th character (e.g., `AAAZR1234F`), mathematically guaranteeing they can never match any real Indian registered entity.
-- **Crypto-Random Token Security**: Public pay links use 128-bit crypto-random tokens; seeded invoices utilize deterministic cryptographic token constants so links persist across demo resets.
-- **Rate-Limiting & Helmet**: Public endpoints are protected with sliding-window rate limiters (`express-rate-limit`) to prevent abuse; HTTP response headers are hardened via `helmet`; JSON request bodies are capped at 1MB.
-- **No Hardcoded URLs**: The frontend reads `VITE_API_URL` dynamically with relative path fallbacks.
-- **Sanitized Calculations**: All calculations are performed server-side in integer paise to avoid client-side tampering and floating-point errors.
+- **Authorization Bearer Tokens**: All API requests use `Authorization: Bearer <token>` headers instead of cross-site cookies, preventing third-party cookie blocking between Vercel and Render.
+- **No Production Fallback Secrets**: Production crashes immediately on boot if `AUTH_SECRET` is not explicitly provided in the environment.
+- **Demo Mode Isolation**: Demo login is disabled unless `DEMO_MODE=true`. Reset demo endpoint has a 60-second cooldown rate limit.
+- **128-bit Cryptographic Pay Tokens**: Invoices created at runtime use `crypto.randomBytes(16).toString('hex')`.
+- **Fictional Demo Data**: All phone numbers use reserved demo blocks (`+91 99999 1000X`), PANs use invalid character `Z` at position 4, and UPI IDs use `@demo` handle.
+- **Database Safety**: WAL mode, foreign keys, and integer-paise math.
 
 ---
 
