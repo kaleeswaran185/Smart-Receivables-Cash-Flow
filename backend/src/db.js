@@ -22,6 +22,13 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
   if (fs.existsSync(SCHEMA_PATH)) {
     const schemaSql = fs.readFileSync(SCHEMA_PATH, 'utf-8');
     db.exec(schemaSql);
+
+    // Backward compatibility for existing DBs
+    try {
+      db.exec('ALTER TABLE business ADD COLUMN turnover_paise INTEGER DEFAULT 6500000000');
+    } catch (e) {
+      // Column already exists, ignore
+    }
   } else {
     throw new Error(`Schema file not found at ${SCHEMA_PATH}`);
   }

@@ -47,6 +47,9 @@ export function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+    const handleDateChange = () => fetchDashboardData();
+    window.addEventListener('baaki_demo_date_changed', handleDateChange);
+    return () => window.removeEventListener('baaki_demo_date_changed', handleDateChange);
   }, []);
 
   const handleQuickRemind = (invoice) => {

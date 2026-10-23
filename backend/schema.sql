@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS business (
   bank_ifsc TEXT,
   bank_branch TEXT,
   upi_id TEXT,
+  turnover_paise INTEGER DEFAULT 6500000000,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

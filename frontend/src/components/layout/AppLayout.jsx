@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useDemo } from '../../context/DemoContext';
 import {
   LayoutDashboard,
   FileText,
@@ -20,6 +21,7 @@ export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { demoDate, business } = useDemo();
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -62,16 +64,22 @@ export function AppLayout() {
         <div className="px-4 py-3 mx-3 my-3 rounded-xl bg-slate-800/80 border border-slate-700/60">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-300">
             <Building2 className="w-4 h-4 text-emerald-400" />
-            <span className="truncate">Sharma Packaging</span>
+            <span className="truncate">{business?.name || 'Sharma Packaging'}</span>
           </div>
-          <div className="text-[11px] text-slate-400 mt-0.5">Pune, MH • Regular GST</div>
+          <div className="text-[11px] text-slate-400 mt-0.5">
+            {business?.city || 'Pune'}, {business?.state_code || 'MH'} • {business?.reg_type || 'Regular'} GST
+          </div>
           <div className="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between text-[11px]">
             <span className="text-slate-400 flex items-center gap-1">
               <Calendar className="w-3 h-3 text-indigo-400" /> Demo Date:
             </span>
-            <span className="font-mono font-medium text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/50">
-              2026-10-22
-            </span>
+            <NavLink
+              to="/settings"
+              className="font-mono font-medium text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/50 hover:bg-emerald-900/60 transition-colors"
+              title="Change Demo Date in Settings"
+            >
+              {demoDate}
+            </NavLink>
           </div>
         </div>
 
@@ -136,8 +144,12 @@ export function AppLayout() {
               ₹
             </div>
             <div className="truncate">
-              <h1 className="font-bold text-white text-base leading-tight truncate">Sharma Packaging</h1>
-              <div className="text-[11px] text-emerald-400 font-mono">Demo: 22 Oct 2026</div>
+              <h1 className="font-bold text-white text-base leading-tight truncate">
+                {business?.name || 'Sharma Packaging'}
+              </h1>
+              <NavLink to="/settings" className="text-[11px] text-emerald-400 font-mono hover:underline">
+                Demo: {demoDate}
+              </NavLink>
             </div>
           </div>
 

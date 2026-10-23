@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   HandCoins,
   Copy,
-  Check
+  Check,
+  Printer
 } from 'lucide-react';
 import api from '../services/api';
 import { formatIndianCurrency, formatDate, amountInWords } from '../utils/money';
@@ -92,6 +93,26 @@ export function InvoiceDetailPage() {
 
         {/* 48px Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate(`/invoices/${invoice.id}/print`)}
+            className="min-h-[48px] px-4 py-2 rounded-xl bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-semibold text-xs sm:text-sm border border-slate-200 flex items-center gap-2 transition-colors shadow-sm"
+            title="Print or Save Invoice as PDF"
+          >
+            <Printer className="w-4 h-4 text-slate-600" />
+            <span>Print Invoice</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate(`/invoices/${invoice.id}/demand-letter`)}
+            className="min-h-[48px] px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 font-semibold text-xs sm:text-sm border border-rose-200 flex items-center gap-2 transition-colors"
+            title="Generate Formal Payment Demand Letter"
+          >
+            <FileText className="w-4 h-4 text-rose-600" />
+            <span>Demand Letter</span>
+          </button>
+
           {invoice.payment_token && (
             <button
               type="button"

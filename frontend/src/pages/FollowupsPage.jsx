@@ -62,6 +62,9 @@ export function FollowupsPage() {
 
   useEffect(() => {
     loadFollowups();
+    const handleDateChange = () => loadFollowups();
+    window.addEventListener('baaki_demo_date_changed', handleDateChange);
+    return () => window.removeEventListener('baaki_demo_date_changed', handleDateChange);
   }, []);
 
   const handleCopyLink = (f) => {
@@ -330,6 +333,17 @@ export function FollowupsPage() {
                     >
                       <Calendar className="w-4 h-4 text-indigo-600" />
                       <span>Promise to Pay</span>
+                    </button>
+
+                    {/* Demand Letter */}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/invoices/${f.invoice_id}/demand-letter`)}
+                      className="min-h-[48px] px-3.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 border border-purple-200 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
+                      title="Generate Payment Demand Letter"
+                    >
+                      <FileText className="w-4 h-4 text-purple-600" />
+                      <span>Demand Letter</span>
                     </button>
                   </div>
                 </div>

@@ -44,6 +44,9 @@ export function ForecastPage() {
 
   useEffect(() => {
     loadForecast(scenario);
+    const handleDateChange = () => loadForecast(scenario);
+    window.addEventListener('baaki_demo_date_changed', handleDateChange);
+    return () => window.removeEventListener('baaki_demo_date_changed', handleDateChange);
   }, [scenario]);
 
   const scenarios = [

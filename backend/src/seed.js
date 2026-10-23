@@ -44,6 +44,7 @@ export function seedDatabase(db, options = { force: false }) {
     insertSetting.run('opening_cash_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
     insertSetting.run('safety_buffer_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
     insertSetting.run('cash_flow_alert_threshold_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
+    insertSetting.run('annual_turnover_paise', '6500000000'); // ₹6.5 Crore (> ₹5 Crore)
 
     // 2. Business: Sharma Packaging (Pune, Maharashtra)
     const bizGSTIN = generateValidGSTIN('27', 'AAACR1234F', '1'); // Maharashtra
@@ -51,8 +52,8 @@ export function seedDatabase(db, options = { force: false }) {
       INSERT INTO business (
         name, trade_name, gstin, reg_type, state_code, state,
         address_line1, address_line2, city, pincode, phone, email, pan,
-        bank_name, bank_account_no, bank_ifsc, bank_branch, upi_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        bank_name, bank_account_no, bank_ifsc, bank_branch, upi_id, turnover_paise
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       'Sharma Packaging',
       'Sharma Packaging Solutions Pvt Ltd',
@@ -71,7 +72,8 @@ export function seedDatabase(db, options = { force: false }) {
       '50200045892147',
       'HDFC0001234',
       'Bhosari MIDC Branch',
-      'sharmapackaging@hdfcbank'
+      'sharmapackaging@hdfcbank',
+      6500000000
     );
 
     const businessId = insertBiz.lastInsertRowid;

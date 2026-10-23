@@ -3,6 +3,7 @@ import { getDatabase } from '../db.js';
 import { calculateInvoice } from '../lib/gst.js';
 import { formatIndianCurrency, rupeesToPaise } from '../lib/money.js';
 import { getToday, addDays } from '../lib/dateUtils.js';
+import { syncInvoiceStatuses } from '../lib/statusSync.js';
 
 const router = express.Router();
 
@@ -14,6 +15,7 @@ router.get('/', (req, res) => {
   try {
     const db = getDatabase();
     const demoDate = getToday(db);
+    syncInvoiceStatuses(db, demoDate);
 
     const {
       status,
@@ -132,13 +134,24 @@ router.get('/:id', (req, res) => {
         c.phone as customer_phone,
         c.email as customer_email,
         b.name as business_name,
+        b.trade_name as business_trade_name,
         b.gstin as business_gstin,
+        b.reg_type as business_reg_type,
         b.state as business_state,
+        b.state_code as business_state_code,
+        b.address_line1 as business_address_line1,
+        b.address_line2 as business_address_line2,
+        b.city as business_city,
+        b.pincode as business_pincode,
+        b.phone as business_phone,
+        b.email as business_email,
         b.pan as business_pan,
         b.bank_name,
         b.bank_account_no,
         b.bank_ifsc,
-        b.upi_id
+        b.bank_branch,
+        b.upi_id,
+        b.turnover_paise as business_turnover_paise
       FROM invoices i
       JOIN customers c ON i.customer_id = c.id
       JOIN business b ON i.business_id = b.id
@@ -209,8 +222,12 @@ router.get('/:id', (req, res) => {
     // Sort timeline chronologically
     timeline.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 
+    const today = getToday(db);
+
     res.json({
       ...invoice,
+      today,
+      demo_date: today,
       formatted_total: formatIndianCurrency(invoice.total_paise),
       formatted_balance: formatIndianCurrency(invoice.balance_paise),
       formatted_paid: formatIndianCurrency(invoice.paid_paise),

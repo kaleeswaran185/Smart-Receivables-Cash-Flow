@@ -1,6 +1,7 @@
 import express from 'express';
 import { getDatabase } from '../db.js';
 import { getToday, diffDays } from '../lib/dateUtils.js';
+import { syncInvoiceStatuses } from '../lib/statusSync.js';
 import { formatIndianCurrency } from '../lib/money.js';
 import { calculateCashForecast } from '../services/forecastService.js';
 import { calculateChasePriority } from '../services/chaseService.js';
@@ -20,6 +21,7 @@ router.get('/', (req, res) => {
   try {
     const db = getDatabase();
     const today = getToday(db);
+    syncInvoiceStatuses(db, today);
 
     // 1. Fetch active invoices
     const allInvoices = db.prepare(`

@@ -18,10 +18,12 @@ import { formatIndianCurrency, formatDate } from '../utils/money';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { useDemo } from '../context/DemoContext';
 
 export function InvoicesPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { demoDate } = useDemo();
 
   const [invoices, setInvoices] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -55,9 +57,10 @@ export function InvoicesPage() {
 
   useEffect(() => {
     loadData();
+    const handleDateChange = () => loadData();
+    window.addEventListener('baaki_demo_date_changed', handleDateChange);
+    return () => window.removeEventListener('baaki_demo_date_changed', handleDateChange);
   }, []);
-
-  const demoDate = '2026-10-22';
 
   // Calculate days overdue
   const getDaysOverdue = (dueDate) => {
