@@ -225,7 +225,7 @@ export function AppLayout() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 bg-slate-100 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 border border-slate-200">
               <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Simulated Date: <strong className="text-slate-900 font-mono">2026-10-22</strong></span>
+              <span>Simulated Date: <strong className="text-slate-900 font-mono">{demoDate}</strong></span>
             </div>
 
             <button

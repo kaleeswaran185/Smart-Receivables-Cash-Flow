@@ -15,6 +15,7 @@ import {
   ChevronRight,
   TrendingDown,
   RefreshCw,
+  Plus,
   X
 } from 'lucide-react';
 import api from '../services/api';

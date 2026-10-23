@@ -217,21 +217,26 @@ export function calculateInvoice({ business = {}, customer = {}, items = [], pla
   let igstPaise = 0;
 
   const calculatedItems = items.map((item, index) => {
-    const qty = Number(item.qty !== undefined ? item.qty : 1);
-    const ratePaise = Math.round(Number(item.ratePaise !== undefined ? item.ratePaise : (item.rate ? item.rate * 100 : 0)));
+    const qty = Number(item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : 1));
+    const rawRatePaise = item.ratePaise !== undefined ? item.ratePaise : (item.rate_paise !== undefined ? item.rate_paise : (item.rate ? item.rate * 100 : 0));
+    const ratePaise = Math.round(Number(rawRatePaise));
     const lineSubtotalPaise = Math.round(qty * ratePaise);
 
     let lineDiscountPaise = 0;
     if (item.discountPaise !== undefined) {
       lineDiscountPaise = Math.round(Number(item.discountPaise));
+    } else if (item.discount_paise !== undefined) {
+      lineDiscountPaise = Math.round(Number(item.discount_paise));
     } else if (item.discountPercent !== undefined) {
       lineDiscountPaise = Math.round((lineSubtotalPaise * Number(item.discountPercent)) / 100);
+    } else if (item.discount_percent !== undefined) {
+      lineDiscountPaise = Math.round((lineSubtotalPaise * Number(item.discount_percent)) / 100);
     } else if (item.discount !== undefined) {
       lineDiscountPaise = Math.round(Number(item.discount));
     }
 
     const lineTaxablePaise = Math.max(0, lineSubtotalPaise - lineDiscountPaise);
-    const gstRate = Number(item.gstRate !== undefined ? item.gstRate : (item.taxRate || 0));
+    const gstRate = Number(item.gstRate !== undefined ? item.gstRate : (item.gst_rate !== undefined ? item.gst_rate : (item.taxRate || 0)));
 
     let lineCgstPaise = 0;
     let lineSgstPaise = 0;
