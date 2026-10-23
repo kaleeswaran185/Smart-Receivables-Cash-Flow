@@ -17,7 +17,27 @@ import { getDatabase } from './db.js';
 export function createApp() {
   const app = express();
 
-  app.use(cors());
+  // CORS allow-list configuration supporting FRONTEND_URL env var
+  const rawFrontendUrl = process.env.FRONTEND_URL;
+  const allowedOrigins = rawFrontendUrl
+    ? rawFrontendUrl.split(',').map((u) => u.trim())
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Origin ${origin} not allowed by CORS`));
+      },
+      credentials: true
+    })
+  );
   app.use(express.json());
 
   // Health check endpoint
