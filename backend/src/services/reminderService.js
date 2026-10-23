@@ -253,9 +253,15 @@ export function recordReminderSent(db, { invoiceId, stage, channel = 'WHATSAPP',
   const meta = STAGE_META[stage] || { name: 'CUSTOM' };
   const daysOverdue = diffDays(finalSentAt, invoice.due_date);
 
+  const existingTarget = db.prepare('SELECT id, status FROM reminders WHERE invoice_id = ? AND stage = ?').get(invoiceId, stage);
+  if (existingTarget && existingTarget.status === 'SENT') {
+    const err = new Error(`Reminder for stage ${stage} has already been recorded as sent for invoice #${invoice.invoice_number}`);
+    err.code = 'REMINDER_ALREADY_SENT';
+    throw err;
+  }
+
   const tx = db.transaction(() => {
     // 1. Mark the target stage as SENT (upsert for UNIQUE(invoice_id, stage))
-    const existingTarget = db.prepare('SELECT id FROM reminders WHERE invoice_id = ? AND stage = ?').get(invoiceId, stage);
     let reminderId;
 
     if (existingTarget) {

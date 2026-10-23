@@ -43,6 +43,41 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
     try {
       db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_reminders_invoice_stage ON reminders(invoice_id, stage)');
     } catch (e) {}
+
+    // Ensure reminders table allows 'SKIPPED' status in CHECK constraint
+    try {
+      const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='reminders'").get();
+      if (tableInfo && tableInfo.sql && !tableInfo.sql.includes('SKIPPED')) {
+        db.exec(`
+          PRAGMA foreign_keys = OFF;
+          CREATE TABLE reminders_migration_skipped (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            business_id INTEGER NOT NULL REFERENCES business(id) ON DELETE CASCADE,
+            invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+            customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+            reminder_type TEXT NOT NULL CHECK(reminder_type IN ('UPCOMING', 'DUE_TODAY', 'OVERDUE_GENTLE', 'OVERDUE_FIRM', 'URGENT_HOLD', 'LEGAL_NOTICE', 'CUSTOM')),
+            stage INTEGER DEFAULT 0,
+            channel TEXT NOT NULL CHECK(channel IN ('WHATSAPP', 'SMS', 'EMAIL')),
+            scheduled_at TEXT NOT NULL,
+            sent_at TEXT,
+            status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'SENT', 'FAILED', 'CANCELLED', 'SKIPPED')),
+            message_body TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(invoice_id, stage)
+          );
+          INSERT INTO reminders_migration_skipped (id, business_id, invoice_id, customer_id, reminder_type, stage, channel, scheduled_at, sent_at, status, message_body, created_at)
+          SELECT id, business_id, invoice_id, customer_id, reminder_type, stage, channel, scheduled_at, sent_at, status, message_body, created_at FROM reminders;
+          DROP TABLE reminders;
+          ALTER TABLE reminders_migration_skipped RENAME TO reminders;
+          CREATE INDEX IF NOT EXISTS idx_reminders_invoice ON reminders(invoice_id);
+          CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders(status);
+          CREATE UNIQUE INDEX IF NOT EXISTS idx_reminders_invoice_stage ON reminders(invoice_id, stage);
+          PRAGMA foreign_keys = ON;
+        `);
+      }
+    } catch (e) {
+      console.error('Failed to migrate reminders table constraint:', e);
+    }
   } else {
     throw new Error(`Schema file not found at ${SCHEMA_PATH}`);
   }

@@ -46,6 +46,8 @@ export function FollowupsPage() {
   const [promising, setPromising] = useState(false);
 
   const [actionSuccess, setActionSuccess] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [processingFollowupId, setProcessingFollowupId] = useState(null);
 
   const loadFollowups = async () => {
     try {
@@ -78,17 +80,23 @@ export function FollowupsPage() {
   };
 
   const handleMarkSent = async (f, channel = 'WHATSAPP') => {
+    const key = `${f.invoice_id}-${f.stage}`;
+    setProcessingFollowupId(key);
+    setActionError(null);
+    setActionSuccess(null);
     try {
-      await api.post(`/reminders/${f.invoice_id}/sent`, {
+      const res = await api.post(`/reminders/${f.invoice_id}/sent`, {
         stage: f.stage,
         channel,
-        message_body: f.suggested_message
+        message_body: f.message_body || f.suggested_message
       });
-      setActionSuccess(`Reminder marked as SENT for ${f.invoice_number}`);
-      setTimeout(() => setActionSuccess(null), 3000);
-      loadFollowups();
+      setActionSuccess(res?.message || `Reminder marked as SENT for ${f.invoice_number}`);
+      setTimeout(() => setActionSuccess(null), 4000);
+      await loadFollowups();
     } catch (err) {
-      alert('Failed to record reminder: ' + err.message);
+      setActionError(err.message || 'Failed to record reminder');
+    } finally {
+      setProcessingFollowupId(null);
     }
   };
 
@@ -176,9 +184,26 @@ export function FollowupsPage() {
       </div>
 
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-center gap-2 animate-fade-in shadow-sm">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          <span>{actionSuccess}</span>
+        <div role="status" className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <span className="font-semibold">{actionSuccess}</span>
+          </div>
+          <button type="button" onClick={() => setActionSuccess(null)} className="p-1 text-emerald-700 hover:text-emerald-950">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {actionError && (
+        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs sm:text-sm flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+            <span className="font-semibold">{actionError}</span>
+          </div>
+          <button type="button" onClick={() => setActionError(null)} className="p-1 text-rose-700 hover:text-rose-950">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -200,12 +225,13 @@ export function FollowupsPage() {
             const daysOverdue = f.days_overdue !== undefined ? f.days_overdue : f.stage;
             const payUrl = `${window.location.origin}/pay/${f.payment_token || f.invoice_id}`;
             const cleanPhone = getCleanPhone(f.customer_phone);
+            const messageText = f.message_body || f.suggested_message || '';
             const isDemo = isDemoNumber(f.customer_phone, f.customer_name);
             const waUrl = isDemo
-              ? `https://wa.me/?text=${encodeURIComponent(f.suggested_message)}`
-              : `https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`}?text=${encodeURIComponent(f.suggested_message)}`;
-            const mailtoUrl = `mailto:${f.customer_email || ''}?subject=${encodeURIComponent(`Payment Follow-up: Invoice ${f.invoice_number}`)}&body=${encodeURIComponent(f.suggested_message)}`;
-            const smsUrl = `sms:${cleanPhone}?body=${encodeURIComponent(f.suggested_message)}`;
+              ? `https://wa.me/?text=${encodeURIComponent(messageText)}`
+              : `https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`}?text=${encodeURIComponent(messageText)}`;
+            const mailtoUrl = `mailto:${f.customer_email || ''}?subject=${encodeURIComponent(`Payment Follow-up: Invoice ${f.invoice_number}`)}&body=${encodeURIComponent(messageText)}`;
+            const smsUrl = `sms:${cleanPhone}?body=${encodeURIComponent(messageText)}`;
 
             return (
               <div
@@ -272,7 +298,7 @@ export function FollowupsPage() {
                   </div>
 
                   <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs sm:text-sm text-slate-800 font-mono whitespace-pre-wrap leading-relaxed select-all">
-                    {f.suggested_message}
+                    {messageText}
                   </div>
                 </div>
 
@@ -318,11 +344,26 @@ export function FollowupsPage() {
                     {/* Mark as Sent */}
                     <button
                       type="button"
+                      aria-label="Mark as Sent"
+                      disabled={processingFollowupId === `${f.invoice_id}-${f.stage}`}
                       onClick={() => handleMarkSent(f)}
-                      className="min-h-[48px] px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm"
+                      className={`min-h-[48px] px-4 py-2 rounded-xl text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm ${
+                        processingFollowupId === `${f.invoice_id}-${f.stage}`
+                          ? 'bg-slate-700 cursor-not-allowed opacity-80'
+                          : 'bg-slate-900 hover:bg-slate-800 active:bg-slate-950 cursor-pointer'
+                      }`}
                     >
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span>Mark Sent</span>
+                      {processingFollowupId === `${f.invoice_id}-${f.stage}` ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                          <span>Marking as Sent...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                          <span>Mark as Sent</span>
+                        </>
+                      )}
                     </button>
 
                     {/* Snooze */}
