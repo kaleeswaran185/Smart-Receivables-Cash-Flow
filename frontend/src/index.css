@@ -13,6 +13,13 @@
     overflow-x: hidden;
     width: 100%;
     min-height: 100vh;
+    background-color: #f8fafc;
+    color: #0f172a;
+  }
+
+  html.dark body {
+    background-color: #020617;
+    color: #f8fafc;
   }
 }
 
@@ -25,6 +32,373 @@ html.text-size-large {
 }
 html.text-size-xlarge {
   font-size: 20px;
+}
+
+/* ========================================================
+   WCAG AA HIGH CONTRAST TOKENS & BADGE SYSTEM
+   Every status badge text/bg contrast >= 4.5:1
+   Every status badge bg/card contrast >= 3.0:1
+   ======================================================== */
+
+.badge-emerald {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+  border-color: #065f46 !important;
+}
+html.dark .badge-emerald {
+  background-color: #34d399 !important;
+  color: #022c22 !important;
+  border-color: #10b981 !important;
+}
+
+.badge-rose {
+  background-color: #be123c !important;
+  color: #ffffff !important;
+  border-color: #9f1239 !important;
+}
+html.dark .badge-rose {
+  background-color: #fb7185 !important;
+  color: #4c0519 !important;
+  border-color: #f43f5e !important;
+}
+
+.badge-amber {
+  background-color: #b45309 !important;
+  color: #ffffff !important;
+  border-color: #92400e !important;
+}
+html.dark .badge-amber {
+  background-color: #f59e0b !important;
+  color: #000000 !important;
+  border-color: #fbbf24 !important;
+}
+
+.badge-sky {
+  background-color: #0369a1 !important;
+  color: #ffffff !important;
+  border-color: #075985 !important;
+}
+html.dark .badge-sky {
+  background-color: #38bdf8 !important;
+  color: #082f49 !important;
+  border-color: #0ea5e9 !important;
+}
+
+.badge-purple {
+  background-color: #6b21a8 !important;
+  color: #ffffff !important;
+  border-color: #581c87 !important;
+}
+html.dark .badge-purple {
+  background-color: #c084fc !important;
+  color: #3b0764 !important;
+  border-color: #a855f7 !important;
+}
+
+.badge-indigo {
+  background-color: #4338ca !important;
+  color: #ffffff !important;
+  border-color: #3730a3 !important;
+}
+html.dark .badge-indigo {
+  background-color: #818cf8 !important;
+  color: #1e1b4b !important;
+  border-color: #6366f1 !important;
+}
+
+.badge-slate {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  border-color: #1e293b !important;
+}
+html.dark .badge-slate {
+  background-color: #94a3b8 !important;
+  color: #0f172a !important;
+  border-color: #64748b !important;
+}
+
+/* High-Contrast Interactive Elements & Buttons */
+.bg-emerald-600 {
+  background-color: #047857 !important;
+  color: #ffffff !important;
+}
+.bg-emerald-600:hover {
+  background-color: #065f46 !important;
+}
+.bg-rose-600 {
+  background-color: #be123c !important;
+  color: #ffffff !important;
+}
+.bg-rose-600:hover {
+  background-color: #9f1239 !important;
+}
+
+/* Status Text Colors with Guaranteed 4.5:1+ Contrast */
+.text-rose-600 {
+  color: #be123c !important;
+}
+html.dark .text-rose-600 {
+  color: #fda4af !important;
+}
+.text-emerald-600 {
+  color: #047857 !important;
+}
+html.dark .text-emerald-600 {
+  color: #6ee7b7 !important;
+}
+.text-emerald-700 {
+  color: #047857 !important;
+}
+html.dark .text-emerald-700 {
+  color: #6ee7b7 !important;
+}
+.text-amber-600 {
+  color: #92400e !important;
+}
+html.dark .text-amber-600 {
+  color: #fde68a !important;
+}
+.text-indigo-600 {
+  color: #3730a3 !important;
+}
+html.dark .text-indigo-600 {
+  color: #a5b4fc !important;
+}
+.text-purple-600 {
+  color: #581c87 !important;
+}
+html.dark .text-purple-600 {
+  color: #d8b4fe !important;
+}
+
+/* Dark Mode Semantic Text Colors */
+html.dark .text-purple-700,
+html.dark .text-purple-800,
+html.dark .text-purple-900 {
+  color: #e9d5ff !important;
+}
+
+html.dark .text-rose-700,
+html.dark .text-rose-800,
+html.dark .text-rose-900 {
+  color: #fecdd3 !important;
+}
+
+html.dark .text-amber-700,
+html.dark .text-amber-800,
+html.dark .text-amber-900 {
+  color: #fde68a !important;
+}
+
+html.dark .text-teal-700,
+html.dark .text-teal-800,
+html.dark .text-teal-900 {
+  color: #5eead4 !important;
+}
+
+html.dark .text-orange-700,
+html.dark .text-orange-800,
+html.dark .text-orange-900 {
+  color: #fed7aa !important;
+}
+
+html.dark .text-indigo-700,
+html.dark .text-indigo-800,
+html.dark .text-indigo-900,
+html.dark .text-indigo-950 {
+  color: #c7d2fe !important;
+}
+
+html.dark .text-blue-700,
+html.dark .text-blue-800,
+html.dark .text-blue-900 {
+  color: #bae6fd !important;
+}
+
+/* Dark Mode Tinted Containers (Ageing cards, modals, hints) */
+html.dark .bg-teal-50,
+html.dark .bg-teal-50\/50 {
+  background-color: #042f2e !important;
+  border-color: #115e59 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-amber-50,
+html.dark .bg-amber-50\/50 {
+  background-color: #451a03 !important;
+  border-color: #78350f !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-orange-50,
+html.dark .bg-orange-50\/50 {
+  background-color: #431407 !important;
+  border-color: #7c2d12 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-rose-50,
+html.dark .bg-rose-50\/50,
+html.dark .bg-rose-50\/60 {
+  background-color: #4c0519 !important;
+  border-color: #881337 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-purple-50,
+html.dark .bg-purple-50\/50,
+html.dark .bg-purple-50\/60 {
+  background-color: #3b0764 !important;
+  border-color: #581c87 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-indigo-50,
+html.dark .bg-indigo-50\/50,
+html.dark .bg-indigo-50\/60 {
+  background-color: #1e1b4b !important;
+  border-color: #3730a3 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .bg-emerald-50,
+html.dark .bg-emerald-50\/50 {
+  background-color: #022c22 !important;
+  border-color: #065f46 !important;
+  color: #f8fafc !important;
+}
+
+/* Global Secondary & Muted Typography Contrast Overrides */
+.text-slate-400 {
+  color: #334155 !important;
+}
+html.dark .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+.text-slate-500 {
+  color: #1e293b !important;
+}
+html.dark .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+.text-slate-600 {
+  color: #1e293b !important;
+}
+html.dark .text-slate-600 {
+  color: #e2e8f0 !important;
+}
+
+.text-slate-700 {
+  color: #0f172a !important;
+}
+html.dark .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+.text-slate-800 {
+  color: #0f172a !important;
+}
+html.dark .text-slate-800 {
+  color: #f8fafc !important;
+}
+
+.text-slate-900 {
+  color: #0f172a !important;
+}
+html.dark .text-slate-900 {
+  color: #ffffff !important;
+}
+
+/* Sidebar & Dark Containers Overrides */
+aside.bg-slate-900,
+aside.bg-slate-900 .text-slate-400,
+.bg-slate-900 .text-slate-400,
+.bg-slate-950 .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+aside.bg-slate-900 .text-slate-500,
+.bg-slate-900 .text-slate-500,
+.bg-slate-950 .text-slate-500 {
+  color: #e2e8f0 !important;
+}
+
+/* Dark Mode Card Backgrounds & Borders */
+html.dark .bg-white {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/50,
+html.dark .bg-slate-50\/80 {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+html.dark .border-slate-100,
+html.dark .border-slate-200,
+html.dark .border-slate-200\/60,
+html.dark .border-slate-200\/80,
+html.dark .border-slate-200\/90 {
+  border-color: #334155 !important;
+}
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #334155 !important;
+}
+
+/* Table Headers High Contrast */
+th {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+html.dark th {
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+  background-color: #1e293b !important;
+}
+
+/* KPI Subtitles */
+.text-slate-400.uppercase,
+.text-slate-500.uppercase,
+.text-slate-600.uppercase {
+  color: #1e293b !important;
+  font-weight: 700 !important;
+}
+html.dark .text-slate-400.uppercase,
+html.dark .text-slate-500.uppercase,
+html.dark .text-slate-600.uppercase {
+  color: #f1f5f9 !important;
+  font-weight: 700 !important;
+}
+
+/* Form Controls & Placeholders */
+input::placeholder, textarea::placeholder {
+  color: #475569 !important;
+  opacity: 1 !important;
+}
+html.dark input::placeholder, html.dark textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+html.dark input, html.dark select, html.dark textarea {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-color: #475569 !important;
+}
+
+/* Links */
+a.text-indigo-600, button.text-indigo-600 {
+  color: #3730a3 !important;
+}
+html.dark a.text-indigo-600, html.dark button.text-indigo-600 {
+  color: #a5b4fc !important;
 }
 
 /* Print CSS */

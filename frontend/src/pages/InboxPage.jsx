@@ -219,12 +219,12 @@ export function InboxPage() {
           onClick={() => setActiveTab('all')}
           className={`min-h-[48px] px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
             activeTab === 'all'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-950 shadow-sm'
+              : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-50'
           }`}
         >
           <span>All Pending</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-mono ${activeTab === 'all' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'all' ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900' : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600'}`}>
             {summary.total_pending}
           </span>
         </button>
@@ -234,13 +234,13 @@ export function InboxPage() {
           onClick={() => setActiveTab('claims')}
           className={`min-h-[48px] px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
             activeTab === 'claims'
-              ? 'bg-emerald-700 text-white shadow-sm'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              ? 'bg-emerald-700 dark:bg-emerald-500 text-white dark:text-slate-950 shadow-sm'
+              : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-50'
           }`}
         >
           <CreditCard className="w-4 h-4" />
           <span>Payment Claims</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-mono ${activeTab === 'claims' ? 'bg-emerald-800 text-white' : 'bg-emerald-50 text-emerald-700'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'claims' ? 'bg-emerald-900 dark:bg-emerald-700 text-white' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-100 border border-emerald-400 dark:border-emerald-700'}`}>
             {summary.payment_claims_count}
           </span>
         </button>
@@ -250,13 +250,13 @@ export function InboxPage() {
           onClick={() => setActiveTab('disputes')}
           className={`min-h-[48px] px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
             activeTab === 'disputes'
-              ? 'bg-rose-700 text-white shadow-sm'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              ? 'bg-rose-700 dark:bg-rose-500 text-white dark:text-slate-950 shadow-sm'
+              : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-50'
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
           <span>Open Disputes</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-mono ${activeTab === 'disputes' ? 'bg-rose-800 text-white' : 'bg-rose-50 text-rose-700'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'disputes' ? 'bg-rose-900 dark:bg-rose-700 text-white' : 'bg-rose-100 dark:bg-rose-950 text-rose-950 dark:text-rose-100 border border-rose-400 dark:border-rose-700'}`}>
             {summary.disputes_count}
           </span>
         </button>
@@ -266,13 +266,13 @@ export function InboxPage() {
           onClick={() => setActiveTab('promises')}
           className={`min-h-[48px] px-4 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors whitespace-nowrap ${
             activeTab === 'promises'
-              ? 'bg-indigo-700 text-white shadow-sm'
-              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              ? 'bg-indigo-700 dark:bg-indigo-400 text-white dark:text-slate-950 shadow-sm'
+              : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-50'
           }`}
         >
           <Calendar className="w-4 h-4" />
           <span>Payment Promises</span>
-          <span className={`px-2 py-0.5 rounded-full text-xs font-mono ${activeTab === 'promises' ? 'bg-indigo-800 text-white' : 'bg-indigo-50 text-indigo-700'}`}>
+          <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'promises' ? 'bg-indigo-900 dark:bg-indigo-700 text-white' : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-950 dark:text-indigo-100 border border-indigo-400 dark:border-indigo-700'}`}>
             {summary.promises_count}
           </span>
         </button>

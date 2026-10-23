@@ -322,10 +322,10 @@ export function BankImportModal({ isOpen, onClose, onReconciled, openInvoices = 
                         const tdsHint = tx.tds_hint;
                         const applyTds = Boolean(applyTdsMap[tx.tx_hash]);
 
-                        let confBadge = 'bg-slate-100 text-slate-700 border-slate-200';
-                        if (confidence === 'HIGH') confBadge = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                        if (confidence === 'MEDIUM') confBadge = 'bg-amber-50 text-amber-700 border-amber-200';
-                        if (confidence === 'LOW') confBadge = 'bg-rose-50 text-rose-700 border-rose-200';
+                        let confBadge = 'badge-slate';
+                        if (confidence === 'HIGH') confBadge = 'badge-emerald';
+                        if (confidence === 'MEDIUM') confBadge = 'badge-amber';
+                        if (confidence === 'LOW') confBadge = 'badge-rose';
 
                         return (
                           <tr key={tx.tx_hash} className={`hover:bg-slate-50/80 transition-colors ${isSelected ? 'bg-indigo-50/40' : ''}`}>

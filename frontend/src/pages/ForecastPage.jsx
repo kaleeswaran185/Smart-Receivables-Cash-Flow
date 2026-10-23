@@ -181,7 +181,7 @@ export function ForecastPage() {
                 <span className="font-bold text-base text-amber-950">
                   Cash Deficit Detected in Week {shortage.weekNumber} ({formatDate(shortage.startDate)} - {formatDate(shortage.endDate)})
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold badge-rose shadow-sm">
                   Deficit: {shortage.formattedDeficit || formatIndianCurrency(shortage.deficitPaise)}
                 </span>
               </div>

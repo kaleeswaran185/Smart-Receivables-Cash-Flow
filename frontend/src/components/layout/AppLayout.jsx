@@ -59,7 +59,7 @@ export function AppLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased overflow-x-hidden">
       {/* Desktop Sidebar (>= 768px) */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-slate-200 border-r border-slate-800 flex-shrink-0 fixed inset-y-0 left-0 z-30">
         {/* Brand Header */}
@@ -132,7 +132,7 @@ export function AppLayout() {
                   <span>{item.name}</span>
                 </div>
                 {item.badge && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-rose-500 text-white px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold uppercase tracking-wider bg-rose-700 text-white px-2 py-0.5 rounded-full border border-rose-800 shadow-sm">
                     {item.badge}
                   </span>
                 )}
@@ -230,7 +230,7 @@ export function AppLayout() {
                       <span>{item.name}</span>
                     </div>
                     {item.badge && (
-                      <span className="text-xs font-bold uppercase tracking-wider bg-rose-500 text-white px-2 py-0.5 rounded-full">
+                      <span className="text-xs font-bold uppercase tracking-wider bg-rose-700 text-white px-2 py-0.5 rounded-full border border-rose-800 shadow-sm">
                         {item.badge}
                       </span>
                     )}
@@ -257,9 +257,9 @@ export function AppLayout() {
         )}
 
         {/* Desktop Top Header Bar (Breadcrumb & Meta) */}
-        <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b border-slate-200/80 sticky top-0 z-20">
+        <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-slate-900 capitalize">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 capitalize">
               {location.pathname === '/dashboard' ? 'Overview Dashboard' : location.pathname.replace('/', '').replace(/-/g, ' ')}
             </h2>
           </div>
@@ -268,17 +268,17 @@ export function AppLayout() {
             <button
               type="button"
               onClick={toggleLanguage}
-              className="min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300"
+              className="min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-600"
               title="Switch Language / भाषा बदलें"
             >
-              <span className={language === 'en' ? 'text-indigo-600 font-extrabold' : 'text-slate-500'}>EN</span>
-              <span className="text-slate-300">|</span>
-              <span className={language === 'hi' ? 'text-indigo-600 font-extrabold' : 'text-slate-500'}>हिन्दी</span>
+              <span className={language === 'en' ? 'text-indigo-700 dark:text-indigo-300 font-extrabold' : 'text-slate-700 dark:text-slate-300 font-semibold'}>EN</span>
+              <span className="text-slate-400 dark:text-slate-500">|</span>
+              <span className={language === 'hi' ? 'text-indigo-700 dark:text-indigo-300 font-extrabold' : 'text-slate-700 dark:text-slate-300 font-semibold'}>हिन्दी</span>
             </button>
 
-            <div className="flex items-center gap-2 bg-slate-100 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-600 border border-slate-200">
-              <Calendar className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Simulated Date: <strong className="text-slate-900 font-mono">{demoDate}</strong></span>
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
+              <Calendar className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400" />
+              <span>Simulated Date: <strong className="text-slate-950 dark:text-white font-mono">{demoDate}</strong></span>
             </div>
 
             <button
@@ -311,7 +311,7 @@ export function AppLayout() {
       {/* Mobile Bottom Navigation Bar (Fixed, min-h-[56px], 48px touch targets) */}
       <nav
         aria-label="Mobile Navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-lg border-t border-slate-200 shadow-lg px-2 py-1 flex items-center justify-around"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 shadow-lg px-2 py-1 flex items-center justify-around"
       >
         {mobileBottomItems.map((item) => {
           const Icon = item.icon;
@@ -321,11 +321,11 @@ export function AppLayout() {
               key={item.name}
               to={item.path}
               className={`
-                flex-1 min-h-[48px] py-1 px-1 flex flex-col items-center justify-center rounded-xl text-[11px] font-medium transition-colors
-                ${isActive ? 'text-indigo-600 font-bold' : 'text-slate-500 hover:text-slate-900'}
+                flex-1 min-h-[48px] py-1 px-1 flex flex-col items-center justify-center rounded-xl text-[11px] font-semibold transition-colors
+                ${isActive ? 'text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}
               `}
             >
-              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-indigo-600' : 'text-slate-500'}`} />
+              <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300'}`} />
               <span className="truncate max-w-[60px] text-center">{item.name}</span>
             </NavLink>
           );

@@ -143,7 +143,7 @@ export function DashboardPage() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative z-10">
             <div className="space-y-2 max-w-3xl">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-500/20 text-rose-200 border border-rose-400/30">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-rose-950 text-white border border-rose-400 shadow-sm">
                   <AlertTriangle className="w-3.5 h-3.5 text-rose-300" />
                   Shortage Alert
                 </span>
@@ -311,14 +311,14 @@ export function DashboardPage() {
 
           {/* Card 7: Lowest Projected Cash */}
           <div className={`border rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow ${
-            lowest_forecast?.is_deficit ? 'bg-amber-50/40 border-amber-300' : 'bg-white border-slate-200/90'
+            lowest_forecast?.is_deficit ? 'bg-amber-50/80 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800'
           }`}>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+              <span className="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wide">
                 Lowest Cash (Runway)
               </span>
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                lowest_forecast?.is_deficit ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                lowest_forecast?.is_deficit ? 'bg-amber-200 text-amber-950 dark:bg-amber-900 dark:text-amber-100' : 'bg-slate-100 text-slate-700'
               }`}>
                 <AlertTriangle className="w-4 h-4" />
               </div>
@@ -501,7 +501,7 @@ export function DashboardPage() {
               <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
                 CHASE THESE FIRST
               </h2>
-              <span className="bg-rose-500 text-white font-extrabold text-xs px-2.5 py-0.5 rounded-full">
+              <span className="bg-rose-700 text-white font-extrabold text-xs px-2.5 py-0.5 rounded-full border border-rose-800 shadow-sm">
                 Top 5
               </span>
             </div>
@@ -530,8 +530,8 @@ export function DashboardPage() {
                   key={item.invoice_id}
                   className={`rounded-2xl border transition-all ${
                     isTop
-                      ? 'border-rose-300 bg-gradient-to-br from-rose-50/60 via-white to-amber-50/40 shadow-sm p-4 sm:p-5'
-                      : 'border-slate-200/90 bg-white hover:border-slate-300 p-4 sm:p-5'
+                      ? 'border-rose-300 dark:border-rose-800 bg-gradient-to-br from-rose-50/60 via-white to-amber-50/40 dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900 shadow-sm p-4 sm:p-5'
+                      : 'border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 p-4 sm:p-5'
                   }`}
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -540,15 +540,15 @@ export function DashboardPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Rank Badge */}
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          isTop ? 'bg-rose-600 text-white' : 'bg-slate-200 text-slate-700'
+                          isTop ? 'bg-rose-700 text-white' : 'bg-slate-700 text-white'
                         }`}>
                           #{index + 1}
                         </span>
 
                         {/* Priority Score & Label */}
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-100 text-rose-800 border border-rose-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-extrabold bg-rose-700 dark:bg-rose-500 text-white dark:text-slate-950 border border-rose-800 dark:border-rose-400 shadow-sm">
                           <span>{item.label}</span>
-                          <span className="font-mono bg-white/80 px-1 rounded text-rose-900 font-black">
+                          <span className="font-mono bg-white text-rose-950 px-1 rounded font-black">
                             {item.priority_score}
                           </span>
                         </span>
@@ -595,8 +595,8 @@ export function DashboardPage() {
                       </div>
 
                       {/* Reason String - SPEC requirement */}
-                      <div className="p-3 rounded-xl bg-slate-50/90 border border-slate-200/80 text-xs text-slate-700 leading-relaxed">
-                        <strong className="text-slate-900 font-semibold">Priority Driver:</strong>{' '}
+                      <div className="p-3 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 leading-relaxed font-medium">
+                        <strong className="text-slate-950 dark:text-white font-bold">Priority Driver:</strong>{' '}
                         <span>{item.reason}</span>
                       </div>
                     </div>

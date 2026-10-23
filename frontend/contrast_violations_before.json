@@ -1,0 +1,34 @@
+[
+  {
+    "route": "/settings",
+    "viewport": "1280px",
+    "theme": "dark",
+    "target": ".bg-teal-700 > .text-sm.font-bold",
+    "html": "<div class=\"text-sm font-bold\">Normal (16px)</div>",
+    "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.74 (foreground color: #ffffff, background color: #0d9488, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+  },
+  {
+    "route": "/settings",
+    "viewport": "1280px",
+    "theme": "dark",
+    "target": ".text-teal-100",
+    "html": "<div class=\"text-xs mt-1 leading-normal text-teal-100\">Standard readable typography for daily use</div>",
+    "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.32 (foreground color: #ccfbf1, background color: #0d9488, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+  },
+  {
+    "route": "/settings",
+    "viewport": "360px",
+    "theme": "dark",
+    "target": ".bg-teal-700 > .text-sm.font-bold",
+    "html": "<div class=\"text-sm font-bold\">Normal (16px)</div>",
+    "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.74 (foreground color: #ffffff, background color: #0d9488, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
+  },
+  {
+    "route": "/settings",
+    "viewport": "360px",
+    "theme": "dark",
+    "target": ".text-teal-100",
+    "html": "<div class=\"text-xs mt-1 leading-normal text-teal-100\">Standard readable typography for daily use</div>",
+    "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.32 (foreground color: #ccfbf1, background color: #0d9488, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
+  }
+]

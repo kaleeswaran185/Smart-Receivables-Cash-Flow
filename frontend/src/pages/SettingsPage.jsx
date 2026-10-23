@@ -27,7 +27,7 @@ const LADDER_STAGES = [
     days: '-3 Days',
     channel: 'WhatsApp / SMS',
     severity: 'Gentle',
-    color: 'bg-blue-50 text-blue-700 border-blue-200',
+    color: 'badge-sky',
     description: 'Courteous heads-up before the invoice falls due.'
   },
   {
@@ -36,7 +36,7 @@ const LADDER_STAGES = [
     days: '0 Days (Due Date)',
     channel: 'WhatsApp / SMS',
     severity: 'Gentle',
-    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    color: 'badge-emerald',
     description: 'Friendly notification on the actual due date with direct UPI pay link.'
   },
   {
@@ -45,7 +45,7 @@ const LADDER_STAGES = [
     days: '7 Days Overdue',
     channel: 'WhatsApp / SMS',
     severity: 'Moderate',
-    color: 'bg-amber-50 text-amber-700 border-amber-200',
+    color: 'badge-amber',
     description: 'Gentle nudge inquiring if invoice was received or has payment in transit.'
   },
   {
@@ -54,7 +54,7 @@ const LADDER_STAGES = [
     days: '15 Days Overdue',
     channel: 'WhatsApp / Email',
     severity: 'Firm',
-    color: 'bg-orange-50 text-orange-700 border-orange-200',
+    color: 'badge-amber',
     description: 'Firm notice cautioning that delayed settlement may impact order dispatches.'
   },
   {
@@ -63,7 +63,7 @@ const LADDER_STAGES = [
     days: '30 Days Overdue',
     channel: 'WhatsApp / Email',
     severity: 'Urgent',
-    color: 'bg-rose-50 text-rose-700 border-rose-200',
+    color: 'badge-rose',
     description: 'Urgent notice informing that further credit is frozen pending settlement.'
   },
   {
@@ -72,7 +72,7 @@ const LADDER_STAGES = [
     days: '45+ Days Overdue',
     channel: 'Print Letter / Legal Escalation',
     severity: 'Critical',
-    color: 'bg-purple-50 text-purple-700 border-purple-200',
+    color: 'badge-purple',
     description: 'Final commercial demand letter generated with full part payment history and settlement deadline.'
   }
 ];
@@ -301,7 +301,7 @@ export function SettingsPage() {
             </div>
           </div>
           {bizSuccess && (
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+            <span className="text-xs font-bold badge-emerald px-3 py-1 rounded-full border flex items-center gap-1 shadow-sm">
               <CheckCircle2 className="w-3.5 h-3.5" /> Saved Successfully
             </span>
           )}
@@ -529,7 +529,7 @@ export function SettingsPage() {
             </div>
           </div>
           {bufferSuccess && (
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+            <span className="text-xs font-bold badge-emerald px-3 py-1 rounded-full border flex items-center gap-1 shadow-sm">
               <CheckCircle2 className="w-3.5 h-3.5" /> Buffer Updated
             </span>
           )}
@@ -642,12 +642,12 @@ export function SettingsPage() {
                 onClick={() => setLanguage(lang.code)}
                 className={`min-h-[56px] p-3 rounded-xl border text-left transition-all ${
                   isSelected
-                    ? 'bg-indigo-50/80 border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-950 font-bold'
-                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700'
+                    ? 'bg-indigo-700 dark:bg-indigo-600 border-indigo-800 dark:border-indigo-400 text-white font-bold shadow-sm'
+                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
                 }`}
               >
                 <div className="text-sm font-bold">{lang.native}</div>
-                <div className="text-xs text-slate-500">{lang.name}</div>
+                <div className={`text-xs ${isSelected ? 'text-indigo-100' : 'text-slate-600 dark:text-slate-400'}`}>{lang.name}</div>
               </button>
             );
           })}
@@ -678,12 +678,12 @@ export function SettingsPage() {
                 onClick={() => setTextSize(t.code)}
                 className={`min-h-[64px] p-4 rounded-xl border text-left transition-all ${
                   isSelected
-                    ? 'bg-teal-50/80 border-teal-500 ring-2 ring-teal-500/20 text-teal-950 font-bold'
-                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700'
+                    ? 'bg-teal-800 dark:bg-teal-900 border-teal-900 dark:border-teal-500 text-white font-bold shadow-sm'
+                    : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200'
                 }`}
               >
-                <div className="text-sm font-bold text-slate-900">{t.label}</div>
-                <div className="text-xs text-slate-500 mt-1 leading-normal">{t.desc}</div>
+                <div className={`text-sm font-bold ${isSelected ? 'text-white' : 'text-slate-900'}`}>{t.label}</div>
+                <div className={`text-xs mt-1 leading-normal ${isSelected ? 'text-teal-200' : 'text-slate-600 dark:text-slate-400'}`}>{t.desc}</div>
               </button>
             );
           })}
@@ -705,7 +705,7 @@ export function SettingsPage() {
             </div>
           </div>
           {dateSuccess && (
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+            <span className="text-xs font-bold badge-emerald px-3 py-1 rounded-full border flex items-center gap-1 shadow-sm">
               <CheckCircle2 className="w-3.5 h-3.5" /> Date Applied App-Wide
             </span>
           )}
@@ -729,7 +729,7 @@ export function SettingsPage() {
               type="button"
               onClick={() => handleApplyDate(targetDate)}
               disabled={savingDate}
-              className="min-h-[48px] px-6 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs sm:text-sm self-end flex items-center justify-center gap-2 shadow-sm transition-colors"
+              className="min-h-[48px] px-6 py-2.5 rounded-xl bg-amber-800 hover:bg-amber-900 active:bg-amber-950 text-white font-bold text-xs sm:text-sm self-end flex items-center justify-center gap-2 shadow-sm transition-colors cursor-pointer"
             >
               <Clock className="w-4 h-4" />
               <span>{savingDate ? 'Applying...' : 'Apply Demo Date'}</span>
@@ -782,8 +782,8 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200/90 text-xs text-amber-900">
-            <strong>Current active simulated clock:</strong> <span className="font-mono font-bold text-amber-950">{demoDate}</span>.
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/80 rounded-xl border border-amber-300 dark:border-amber-700 text-xs text-amber-950 dark:text-amber-100 font-medium">
+            <strong className="font-bold">Current active simulated clock:</strong> <span className="font-mono font-bold text-amber-950 dark:text-amber-100">{demoDate}</span>.
             All forecast projections start from this date, and unpaid invoices with earlier due dates become overdue automatically.
           </div>
         </div>
