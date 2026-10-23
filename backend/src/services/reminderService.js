@@ -243,7 +243,7 @@ export function recordReminderSent(db, { invoiceId, stage, channel = 'WHATSAPP',
   if (!invoice) throw new Error('Invoice not found');
 
   const meta = STAGE_META[stage] || { name: 'CUSTOM' };
-  const daysOverdue = diffDays(today, invoice.due_date);
+  const daysOverdue = diffDays(finalSentAt, invoice.due_date);
 
   const tx = db.transaction(() => {
     // 1. Mark the target stage as SENT (upsert for UNIQUE(invoice_id, stage))

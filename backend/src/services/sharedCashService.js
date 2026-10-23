@@ -242,6 +242,7 @@ export function getSharedCashModel(db, options = {}) {
       endDate: bucket.endDate,
       openingCashPaise: weekOpenCash,
       expectedCollectionsPaise: collectionsPaise,
+      collectionsPaise,
       expensesPaise,
       scheduledExpensesPaise: expensesPaise,
       netCashPaise,

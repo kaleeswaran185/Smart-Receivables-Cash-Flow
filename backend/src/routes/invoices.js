@@ -324,7 +324,26 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invoice must contain at least one line item' });
     }
 
+    const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+    if (invoice_date && !DATE_REGEX.test(invoice_date)) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invalid invoice_date format. Expected YYYY-MM-DD' });
+    }
+    if (due_date && !DATE_REGEX.test(due_date)) {
+      return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invalid due_date format. Expected YYYY-MM-DD' });
+    }
+
     for (const item of items) {
+      const qty = Number(item.qty !== undefined ? item.qty : (item.quantity !== undefined ? item.quantity : 1));
+      if (isNaN(qty) || qty <= 0) {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Item quantity must be greater than zero' });
+      }
+      if (qty > 1e9) {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Quantity exceeds maximum allowed limit' });
+      }
+      const rawRate = Number(item.ratePaise !== undefined ? item.ratePaise : (item.rate_paise !== undefined ? item.rate_paise : (item.rate ? item.rate * 100 : 0)));
+      if (isNaN(rawRate) || rawRate < 0 || rawRate > 1e14) {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invalid rate amount or exceeds maximum allowed limit' });
+      }
       const hsn = item.hsnCode || item.hsn || item.hsn_code;
       if (hsn && !/^[0-9]{4,8}$/.test(String(hsn).trim())) {
         return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'HSN/SAC code must be 4 to 8 digits' });
