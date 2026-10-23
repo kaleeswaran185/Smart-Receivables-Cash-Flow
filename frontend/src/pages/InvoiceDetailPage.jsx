@@ -15,7 +15,10 @@ import {
   HandCoins,
   Copy,
   Check,
-  Printer
+  Printer,
+  Edit3,
+  Save,
+  X
 } from 'lucide-react';
 import api from '../services/api';
 import { formatIndianCurrency, formatDate, amountInWords } from '../utils/money';
@@ -30,22 +33,74 @@ export function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    due_date: '',
+    notes: '',
+    terms: '',
+    status: ''
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const fetchDetail = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.get(`/invoices/${id}`);
+      setInvoice(data);
+      setEditForm({
+        due_date: data.due_date || '',
+        notes: data.notes || '',
+        terms: data.terms || '',
+        status: data.status || 'SENT'
+      });
+    } catch (err) {
+      setError(err.message || 'Invoice not found');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchDetail() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await api.get(`/invoices/${id}`);
-        setInvoice(data);
-      } catch (err) {
-        setError(err.message || 'Invoice not found');
-      } finally {
-        setLoading(false);
-      }
-    }
     fetchDetail();
   }, [id]);
+
+  const handleOpenEdit = () => {
+    if (invoice) {
+      setEditForm({
+        due_date: invoice.due_date || '',
+        notes: invoice.notes || '',
+        terms: invoice.terms || '',
+        status: invoice.status || 'SENT'
+      });
+      setEditError(null);
+      setShowEditModal(true);
+    }
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    setEditError(null);
+    try {
+      setSavingEdit(true);
+      await api.put(`/invoices/${id}`, {
+        due_date: editForm.due_date,
+        notes: editForm.notes,
+        terms: editForm.terms,
+        status: editForm.status
+      });
+      setShowEditModal(false);
+      setToastMessage('Invoice updated successfully!');
+      setTimeout(() => setToastMessage(null), 3000);
+      await fetchDetail();
+    } catch (err) {
+      setEditError(err.message || 'Failed to update invoice');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const handleCopyLink = () => {
     if (invoice?.payment_token) {
@@ -113,6 +168,16 @@ export function InvoiceDetailPage() {
             <span>Demand Letter</span>
           </button>
 
+          <button
+            type="button"
+            onClick={handleOpenEdit}
+            className="min-h-[48px] px-4 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-700 font-semibold text-xs sm:text-sm border border-indigo-200 flex items-center gap-2 transition-colors cursor-pointer"
+            title="Edit Due Date, Notes, or Terms"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Edit Details</span>
+          </button>
+
           {invoice.payment_token && (
             <button
               type="button"
@@ -148,6 +213,116 @@ export function InvoiceDetailPage() {
           )}
         </div>
       </div>
+
+      {toastMessage && (
+        <div role="status" className="p-4 rounded-xl bg-emerald-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-lg">
+          <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Edit Invoice Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl border border-slate-200 animate-fade-in">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Edit3 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900">Edit Invoice {invoice.invoice_number}</h2>
+                  <p className="text-xs text-slate-500">Update due date, notes, terms, or status</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {editError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+                <div>{editError}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs sm:text-sm">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Due Date</label>
+                <input
+                  type="date"
+                  required
+                  value={editForm.due_date}
+                  onChange={(e) => setEditForm({ ...editForm, due_date: e.target.value })}
+                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Status</label>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-slate-900 bg-white font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="SENT">SENT (Open Unpaid)</option>
+                  <option value="DUE_SOON">DUE_SOON (Approaching Maturity)</option>
+                  <option value="OVERDUE">OVERDUE (Past Agreed Terms)</option>
+                  <option value="PARTIALLY_PAID">PARTIALLY_PAID (Part Settled)</option>
+                  <option value="PAID">PAID (Settled in Full)</option>
+                  <option value="DISPUTED">DISPUTED (Under Query)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Notes / Customer Remarks</label>
+                <textarea
+                  rows={2}
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  placeholder="e.g. Special packing instructions or customer delivery notes"
+                  className="w-full p-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">Payment Terms</label>
+                <textarea
+                  rows={2}
+                  value={editForm.terms}
+                  onChange={(e) => setEditForm({ ...editForm, terms: e.target.value })}
+                  placeholder="e.g. Payment due within 30 days. Interest applicable on delayed settlement."
+                  className="w-full p-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="min-h-[48px] px-4 rounded-xl border border-slate-200 text-slate-700 font-semibold text-xs hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="min-h-[48px] px-6 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{savingEdit ? 'Saving Updates...' : 'Save Changes'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Invoice Overview Card */}
       <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-8 shadow-sm space-y-6">

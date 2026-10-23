@@ -293,7 +293,7 @@ export function AppLayout() {
             <button
               type="button"
               onClick={handleLogout}
-              className="min-h-[44px] px-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-600 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
+              className="min-h-[48px] px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 text-xs font-semibold transition-colors cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-3.5 h-3.5 text-rose-500" />

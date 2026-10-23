@@ -88,7 +88,7 @@ export function DemoProvider({ children }) {
 
   const resetDemo = async () => {
     try {
-      const res = await api.post('/settings/reset-demo');
+      const res = await api.post('/settings/reset-demo', { confirm: true });
       setDemoDateState('2026-10-22');
       if (res.business) setBusiness(res.business);
       window.dispatchEvent(new CustomEvent('baaki_demo_date_changed', { detail: '2026-10-22' }));

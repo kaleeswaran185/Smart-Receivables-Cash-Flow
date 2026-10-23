@@ -557,7 +557,7 @@ export function DashboardPage() {
                         <button
                           type="button"
                           onClick={() => navigate(`/invoices/${item.invoice_id}`)}
-                          className="font-mono font-bold text-slate-900 text-sm hover:text-indigo-600 hover:underline min-h-[32px] flex items-center"
+                          className="font-mono font-bold text-slate-900 text-sm hover:text-indigo-600 hover:underline min-h-[48px] py-1 flex items-center"
                         >
                           {item.invoice_number}
                         </button>

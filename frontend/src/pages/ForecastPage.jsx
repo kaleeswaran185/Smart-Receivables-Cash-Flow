@@ -309,7 +309,7 @@ export function ForecastPage() {
             <button
               type="button"
               onClick={() => navigate('/followups')}
-              className="min-h-[48px] px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm self-start sm:self-auto"
+              className="min-h-[48px] px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 active:bg-amber-950 text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition-colors shadow-sm self-start sm:self-auto"
             >
               <span>Chase All via Follow-ups</span>
               <ArrowRight className="w-4 h-4" />

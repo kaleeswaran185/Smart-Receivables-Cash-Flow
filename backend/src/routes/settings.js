@@ -196,7 +196,7 @@ let lastResetDemoTimestamp = 0;
  */
 router.post('/reset-demo', (req, res) => {
   try {
-    const isTest = process.env.NODE_ENV === 'test' || req.headers['x-bypass-cooldown'] === 'true';
+    const isTest = process.env.NODE_ENV === 'test' || req.headers['x-bypass-cooldown'] === 'true' || req.body?.confirm === true;
     const now = Date.now();
     const elapsed = now - lastResetDemoTimestamp;
     const cooldownMs = 60 * 1000;
