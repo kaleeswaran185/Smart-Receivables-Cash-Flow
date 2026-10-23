@@ -25,10 +25,12 @@ import { formatIndianCurrency, formatDate, amountInWords } from '../utils/money'
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { useTranslation } from '../utils/i18n';
 
 export function InvoiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t, language } = useTranslation('invoices');
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -609,8 +611,10 @@ export function InvoiceDetailPage() {
 
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-900 text-xs sm:text-sm">{event.title}</span>
-                    <span className="font-mono text-[11px] text-slate-400">{formatDate(event.date)}</span>
+                    <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                      {event.code ? t(`timeline.${event.code}`, event.params || {}, event.title) : event.title}
+                    </span>
+                    <span className="font-mono text-[11px] text-slate-400">{formatDate(event.date, language)}</span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">{event.description}</p>
                 </div>

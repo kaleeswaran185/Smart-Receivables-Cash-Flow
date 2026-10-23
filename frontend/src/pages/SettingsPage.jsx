@@ -19,6 +19,7 @@ import { useDemo } from '../context/DemoContext';
 import { formatIndianCurrency, rupeesToPaise, paiseToRupees } from '../utils/money';
 import api from '../services/api';
 import { Loading } from '../components/common/Loading';
+import { useTranslation } from '../utils/i18n';
 
 const LADDER_STAGES = [
   {
@@ -79,9 +80,7 @@ const LADDER_STAGES = [
 
 const LANGUAGES = [
   { code: 'en', name: 'English', native: 'English' },
-  { code: 'hi', name: 'Hindi', native: 'हिंदी' },
-  { code: 'mr', name: 'Marathi', native: 'मराठी' },
-  { code: 'gu', name: 'Gujarati', native: 'ગુજરાતી' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
   { code: 'ta', name: 'Tamil', native: 'தமிழ்' }
 ];
 
@@ -92,6 +91,7 @@ const TEXT_SIZES = [
 ];
 
 export function SettingsPage() {
+  const { t } = useTranslation('settings');
   const {
     demoDate,
     business,
@@ -626,13 +626,13 @@ export function SettingsPage() {
               <Languages className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-900">Application Language</h2>
-              <p className="text-xs text-slate-500">Select language for interface labels, messages, and notifications</p>
+              <h2 className="text-base font-bold text-slate-900">{t('settings.language_preferences', 'Application Language')}</h2>
+              <p className="text-xs text-slate-500">{t('settings.language_desc', 'Select language for interface labels, messages, and notifications')}</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {LANGUAGES.map((lang) => {
             const isSelected = language === lang.code;
             return (

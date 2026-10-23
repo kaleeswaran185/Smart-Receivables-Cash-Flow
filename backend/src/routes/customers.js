@@ -116,11 +116,12 @@ router.post('/', (req, res) => {
       credit_limit_paise,
       credit_limit_rupees,
       credit_period_days = 30,
-      notes
+      notes,
+      preferred_language = 'en'
     } = req.body;
 
     if (!name || typeof name !== 'string' || !name.trim()) {
-      return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Customer name is required' });
+      return res.status(400).json({ error: 'VALIDATION_ERROR', code: 'ERR_VALIDATION', message: 'Customer name is required' });
     }
 
     let cleanGSTIN = null;
@@ -132,6 +133,7 @@ router.post('/', (req, res) => {
       if (!validateGSTIN(cleanGSTIN)) {
         return res.status(400).json({
           error: 'INVALID_GSTIN',
+          code: 'ERR_INVALID_GSTIN',
           message: `The provided GSTIN '${cleanGSTIN}' is structurally invalid or fails the Mod-36 checksum.`
         });
       }
@@ -152,11 +154,13 @@ router.post('/', (req, res) => {
       parsedCreditLimit = rupeesToPaise(credit_limit_rupees);
     }
 
+    const validLang = (preferred_language === 'hi' || preferred_language === 'ta') ? preferred_language : 'en';
+
     const insertStmt = db.prepare(`
       INSERT INTO customers (
         business_id, name, company_name, gstin, state_code, state,
-        address, city, pincode, phone, email, credit_limit_paise, credit_period_days, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        address, city, pincode, phone, email, credit_limit_paise, credit_period_days, notes, preferred_language
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const result = insertStmt.run(
@@ -173,13 +177,81 @@ router.post('/', (req, res) => {
       email || null,
       parsedCreditLimit,
       Number(credit_period_days) || 30,
-      notes || null
+      notes || null,
+      validLang
     );
 
     const created = db.prepare('SELECT * FROM customers WHERE id = ?').get(result.lastInsertRowid);
     res.status(201).json(created);
   } catch (err) {
     res.status(500).json({ error: 'FAILED_TO_CREATE_CUSTOMER', message: err.message });
+  }
+});
+
+/**
+ * PUT /api/customers/:id
+ * Updates customer details including preferred_language.
+ */
+router.put('/:id', (req, res) => {
+  try {
+    const db = getDatabase();
+    const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ error: 'CUSTOMER_NOT_FOUND', code: 'CUSTOMER_NOT_FOUND', message: 'Customer does not exist' });
+    }
+
+    const {
+      name,
+      company_name,
+      phone,
+      email,
+      address,
+      city,
+      pincode,
+      credit_limit_paise,
+      credit_period_days,
+      preferred_language,
+      notes
+    } = req.body;
+
+    const validLang = preferred_language !== undefined
+      ? ((preferred_language === 'hi' || preferred_language === 'ta') ? preferred_language : 'en')
+      : customer.preferred_language;
+
+    db.prepare(`
+      UPDATE customers SET
+        name = COALESCE(?, name),
+        company_name = COALESCE(?, company_name),
+        phone = COALESCE(?, phone),
+        email = COALESCE(?, email),
+        address = COALESCE(?, address),
+        city = COALESCE(?, city),
+        pincode = COALESCE(?, pincode),
+        credit_limit_paise = COALESCE(?, credit_limit_paise),
+        credit_period_days = COALESCE(?, credit_period_days),
+        preferred_language = COALESCE(?, preferred_language),
+        notes = COALESCE(?, notes),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      name !== undefined ? name.trim() : null,
+      company_name !== undefined ? company_name.trim() : null,
+      phone !== undefined ? phone : null,
+      email !== undefined ? email : null,
+      address !== undefined ? address : null,
+      city !== undefined ? city : null,
+      pincode !== undefined ? pincode : null,
+      credit_limit_paise !== undefined ? Math.round(Number(credit_limit_paise)) : null,
+      credit_period_days !== undefined ? Number(credit_period_days) : null,
+      validLang,
+      notes !== undefined ? notes : null,
+      customer.id
+    );
+
+    const updated = db.prepare('SELECT * FROM customers WHERE id = ?').get(customer.id);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: 'FAILED_TO_UPDATE_CUSTOMER', message: err.message });
   }
 });
 

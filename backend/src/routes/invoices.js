@@ -167,6 +167,8 @@ router.get('/:id', (req, res) => {
     timeline.push({
       date: invoice.invoice_date,
       type: 'INVOICE_CREATED',
+      code: 'EVENT_INVOICE_ISSUED',
+      params: { invoiceNumber: invoice.invoice_number, total: formatIndianCurrency(invoice.total_paise) },
       title: 'Invoice Issued',
       description: `Invoice ${invoice.invoice_number} generated for ${formatIndianCurrency(invoice.total_paise)}`
     });
@@ -176,6 +178,8 @@ router.get('/:id', (req, res) => {
       timeline.push({
         date: r.sent_at || r.scheduled_at,
         type: 'REMINDER_SENT',
+        code: 'EVENT_REMINDER_SENT',
+        params: { reminderType: r.reminder_type, channel: r.channel, message: r.message_body || '' },
         title: `Reminder: ${r.reminder_type.replace('_', ' ')}`,
         description: `Sent via ${r.channel}: ${r.message_body || 'Standard reminder'}`
       });
@@ -186,6 +190,8 @@ router.get('/:id', (req, res) => {
       timeline.push({
         date: p.payment_date,
         type: 'PAYMENT_RECEIVED',
+        code: 'EVENT_PAYMENT_RECEIVED',
+        params: { amount: formatIndianCurrency(p.amount_paise), mode: p.payment_mode, ref: p.reference_no || '' },
         title: `Payment Received: ${formatIndianCurrency(p.amount_paise)}`,
         description: `Mode: ${p.payment_mode}${p.reference_no ? `, Ref: ${p.reference_no}` : ''}`
       });
@@ -196,6 +202,8 @@ router.get('/:id', (req, res) => {
       timeline.push({
         date: d.created_at,
         type: 'DISPUTE_RAISED',
+        code: 'EVENT_DISPUTE_RAISED',
+        params: { status: d.status, reason: d.reason, amount: formatIndianCurrency(d.disputed_amount_paise) },
         title: `Dispute Raised (${d.status})`,
         description: `${d.reason} (Disputed: ${formatIndianCurrency(d.disputed_amount_paise)})`
       });
@@ -206,6 +214,8 @@ router.get('/:id', (req, res) => {
       timeline.push({
         date: pr.created_at || pr.promised_date,
         type: 'PROMISE_MADE',
+        code: 'EVENT_PROMISE_MADE',
+        params: { status: pr.status, amount: formatIndianCurrency(pr.promised_amount_paise), promisedDate: pr.promised_date },
         title: `Promise to Pay (${pr.status})`,
         description: `Customer committed to pay ${formatIndianCurrency(pr.promised_amount_paise)} by ${pr.promised_date}`
       });

@@ -14,6 +14,7 @@ function findInvoiceByToken(db, token) {
       c.company_name as customer_company,
       c.email as customer_email,
       c.phone as customer_phone,
+      c.preferred_language as customer_preferred_language,
       b.name as business_name,
       b.trade_name as business_trade_name,
       b.upi_id as business_upi_id,
@@ -36,6 +37,7 @@ function findInvoiceByToken(db, token) {
         c.company_name as customer_company,
         c.email as customer_email,
         c.phone as customer_phone,
+        c.preferred_language as customer_preferred_language,
         b.name as business_name,
         b.trade_name as business_trade_name,
         b.upi_id as business_upi_id,
@@ -88,7 +90,8 @@ router.get('/:token', (req, res) => {
       })),
       customer: {
         name: invoice.customer_name,
-        company_name: invoice.customer_company
+        company_name: invoice.customer_company,
+        preferred_language: invoice.customer_preferred_language || 'en'
       },
       business: {
         name: invoice.business_name,

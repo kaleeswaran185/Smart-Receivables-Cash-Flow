@@ -23,15 +23,19 @@ import { formatIndianCurrency, formatDate } from '../utils/money';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { renderReminderMessage } from '../utils/reminderTemplates';
+import { useTranslation } from '../utils/i18n';
 
 export function FollowupsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t, language: appLanguage } = useTranslation('followups');
 
   const [followups, setFollowups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
+  const [msgLanguages, setMsgLanguages] = useState({});
 
   // Snooze Modal State
   const [snoozeModal, setSnoozeModal] = useState(null); // followup item
@@ -79,7 +83,7 @@ export function FollowupsPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleMarkSent = async (f, channel = 'WHATSAPP') => {
+  const handleMarkSent = async (f, channel = 'WHATSAPP', customMessage = null) => {
     const key = `${f.invoice_id}-${f.stage}`;
     setProcessingFollowupId(key);
     setActionError(null);
@@ -88,7 +92,7 @@ export function FollowupsPage() {
       const res = await api.post(`/reminders/${f.invoice_id}/sent`, {
         stage: f.stage,
         channel,
-        message_body: f.message_body || f.suggested_message
+        message_body: customMessage || f.message_body || f.suggested_message
       });
       setActionSuccess(res?.message || `Reminder marked as SENT for ${f.invoice_number}`);
       setTimeout(() => setActionSuccess(null), 4000);
@@ -225,7 +229,20 @@ export function FollowupsPage() {
             const daysOverdue = f.days_overdue !== undefined ? f.days_overdue : f.stage;
             const payUrl = `${window.location.origin}/pay/${f.payment_token || f.invoice_id}`;
             const cleanPhone = getCleanPhone(f.customer_phone);
-            const messageText = f.message_body || f.suggested_message || '';
+
+            // Per-message language defaulting to customer's preferred_language
+            const msgLang = msgLanguages[f.invoice_id] || f.preferred_language || 'en';
+            const messageText = renderReminderMessage({
+              stage: f.stage,
+              lang: msgLang,
+              customer: f.customer_name,
+              business: 'Sharma Packaging',
+              invoiceNumber: f.invoice_number,
+              amount: formatIndianCurrency(f.balance_paise),
+              dueDate: formatDate(f.due_date, msgLang),
+              paymentLink: payUrl
+            });
+
             const isDemo = isDemoNumber(f.customer_phone, f.customer_name);
             const waUrl = isDemo
               ? `https://wa.me/?text=${encodeURIComponent(messageText)}`
@@ -270,23 +287,36 @@ export function FollowupsPage() {
                         <span className="font-mono text-slate-500">{f.customer_phone}</span>
                       )}
                       <span className="text-slate-400">
-                        Due: <strong className="font-mono text-slate-600">{formatDate(f.due_date)}</strong>
+                        Due: <strong className="font-mono text-slate-600">{formatDate(f.due_date, msgLang)}</strong>
                       </span>
                     </div>
                   </div>
 
                   <div className="text-left sm:text-right">
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Outstanding Balance</span>
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">{t('followups.outstanding_balance', 'Outstanding Balance')}</span>
                     <span className="text-2xl font-black font-mono text-emerald-700 tracking-tight">
                       {formatIndianCurrency(f.balance_paise)}
                     </span>
                   </div>
                 </div>
 
-                {/* Message Body Preview */}
+                {/* Message Body Preview with Language Selector */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
-                    <span>Generated Message ({f.stage === -3 ? 'Courtesy Notice' : f.stage === 0 ? 'Due Today Reminder' : f.stage === 7 ? 'Gentle Overdue' : f.stage === 15 ? 'Firm Reminder' : f.stage === 30 ? 'Urgent Warning' : 'Final Legal Demand'}):</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <span>{t('followups.generated_message', 'Generated Message')}:</span>
+                      <select
+                        aria-label="Select Message Language"
+                        value={msgLang}
+                        onChange={(e) => setMsgLanguages(prev => ({ ...prev, [f.invoice_id]: e.target.value }))}
+                        className="min-h-[36px] px-2.5 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-sm cursor-pointer"
+                      >
+                        <option value="en">English</option>
+                        <option value="hi">हिन्दी</option>
+                        <option value="ta">தமிழ்</option>
+                      </select>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => handleCopyLink(f)}
@@ -346,7 +376,7 @@ export function FollowupsPage() {
                       type="button"
                       aria-label="Mark as Sent"
                       disabled={processingFollowupId === `${f.invoice_id}-${f.stage}`}
-                      onClick={() => handleMarkSent(f)}
+                      onClick={() => handleMarkSent(f, 'WHATSAPP', messageText)}
                       className={`min-h-[48px] px-4 py-2 rounded-xl text-white font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm ${
                         processingFollowupId === `${f.invoice_id}-${f.stage}`
                           ? 'bg-slate-700 cursor-not-allowed opacity-80'

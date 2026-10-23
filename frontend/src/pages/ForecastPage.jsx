@@ -17,12 +17,13 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { formatIndianCurrency, formatDate } from '../utils/money';
-import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { useTranslation } from '../utils/i18n';
 
 export function ForecastPage() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation('forecast');
   const [forecast, setForecast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -104,11 +105,11 @@ export function ForecastPage() {
               <TrendingUp className="w-5 h-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              13-Week Cash Flow Forecast
+              {t('title', '13-Week Cash Flow Forecast')}
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Opening cash, collections adjusted for customer delays, operational expenses & safety buffer analysis
+            {t('subtitle', 'Predictive weekly liquidity model factoring historical payment delays')}
           </p>
         </div>
 
@@ -118,7 +119,7 @@ export function ForecastPage() {
           className="min-h-[48px] px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-colors self-start sm:self-auto"
         >
           <RefreshCw className="w-4 h-4 text-slate-500" />
-          <span>Recalculate</span>
+          <span>{t('common.sync_data', 'Recalculate')}</span>
         </button>
       </div>
 
@@ -126,7 +127,7 @@ export function ForecastPage() {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            What-If Scenario Simulation
+            {t('what_if_title', 'What-If Scenario Simulation')}
           </span>
           <span className="text-xs text-slate-400">
             Current: <strong className="text-indigo-600 uppercase font-semibold">{scenario.replace('_', ' ')}</strong>
@@ -380,14 +381,14 @@ export function ForecastPage() {
           <table className="w-full text-left border-collapse text-xs sm:text-sm font-mono">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-sans font-semibold uppercase text-[11px] tracking-wider">
-                <th className="p-3 sm:p-4">Week</th>
-                <th className="p-3 sm:p-4">Date Range</th>
-                <th className="p-3 sm:p-4 text-right">Opening Cash</th>
-                <th className="p-3 sm:p-4 text-right">Expected Collections</th>
-                <th className="p-3 sm:p-4 text-right">Scheduled Expenses</th>
+                <th className="p-3 sm:p-4">{t('week', 'Week')}</th>
+                <th className="p-3 sm:p-4">{t('invoices.date', 'Date Range')}</th>
+                <th className="p-3 sm:p-4 text-right">{t('opening_balance', 'Opening Cash')}</th>
+                <th className="p-3 sm:p-4 text-right">{t('expected_collections', 'Expected Collections')}</th>
+                <th className="p-3 sm:p-4 text-right">{t('planned_expenses', 'Scheduled Expenses')}</th>
                 <th className="p-3 sm:p-4 text-right">Net Flow</th>
-                <th className="p-3 sm:p-4 text-right">Closing Cash</th>
-                <th className="p-3 sm:p-4 text-center font-sans">Status</th>
+                <th className="p-3 sm:p-4 text-right">{t('closing_balance', 'Closing Balance')}</th>
+                <th className="p-3 sm:p-4 text-center font-sans">{t('safety_buffer_status', 'Status')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -409,7 +410,7 @@ export function ForecastPage() {
                       W{w.weekNumber}
                     </td>
                     <td className="p-3 sm:p-4 text-slate-600 font-sans text-xs whitespace-nowrap">
-                      {formatDate(w.startDate)} - {formatDate(w.endDate)}
+                      {formatDate(w.startDate, language)} - {formatDate(w.endDate, language)}
                     </td>
                     <td className="p-3 sm:p-4 text-right text-slate-700">
                       {openingFormatted}

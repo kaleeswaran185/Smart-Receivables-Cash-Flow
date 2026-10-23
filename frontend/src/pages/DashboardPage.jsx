@@ -23,9 +23,11 @@ import { formatIndianCurrency, formatDate } from '../utils/money';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { useTranslation } from '../utils/i18n';
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation('dashboard');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -114,11 +116,11 @@ export function DashboardPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Cash Flow & Receivables Command Center
+              {t('title', 'Overview Dashboard')}
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Real-time aging analysis and AI-prioritized invoice recovery for Sharma Packaging
+            {t('subtitle', 'Real-time receivables monitoring & working capital health')}
           </p>
         </div>
 
@@ -130,7 +132,7 @@ export function DashboardPage() {
             title="Refresh Ledger Data"
           >
             <RefreshCw className="w-4 h-4 text-slate-500" />
-            <span>Sync Data</span>
+            <span>{t('common.sync_data', 'Sync Data')}</span>
           </button>
         </div>
       </div>
@@ -153,17 +155,21 @@ export function DashboardPage() {
               </div>
 
               <h2 className="text-lg sm:text-2xl font-extrabold tracking-tight text-white">
-                Projected Cash Shortage of{' '}
-                <span className="text-amber-300 underline decoration-amber-400/60 decoration-wavy">
-                  {lowest_forecast.formatted_deficit}
-                </span>{' '}
-                in Week {lowest_forecast.week_number}
+                {t('shortage_alert_title', {
+                  weekNumber: lowest_forecast.week_number,
+                  deficit: lowest_forecast.formatted_deficit,
+                  defaultValue: `Projected Cash Shortage of ${lowest_forecast.formatted_deficit} in Week ${lowest_forecast.week_number}`
+                })}
               </h2>
 
               <p className="text-xs sm:text-sm text-rose-100/90 leading-relaxed">
-                Projected closing cash drops to <strong className="text-white">{lowest_forecast.formatted_closing_cash}</strong> (below the ₹5,00,000 safety buffer) between{' '}
-                <strong className="text-white">{formatDate(lowest_forecast.start_date)}</strong> and{' '}
-                <strong className="text-white">{formatDate(lowest_forecast.end_date)}</strong>. Recovering the high-priority invoices below will completely avert this cash crunch.
+                {t('shortage_alert_desc', {
+                  closingBalance: lowest_forecast.formatted_closing_cash,
+                  startDate: formatDate(lowest_forecast.start_date, language),
+                  endDate: formatDate(lowest_forecast.end_date, language),
+                  safetyBuffer: '₹5,00,000',
+                  defaultValue: `Projected closing cash drops to ${lowest_forecast.formatted_closing_cash} between ${formatDate(lowest_forecast.start_date)} and ${formatDate(lowest_forecast.end_date)}.`
+                })}
               </p>
             </div>
 
@@ -173,7 +179,7 @@ export function DashboardPage() {
                 className="min-h-[48px] px-5 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md"
               >
                 <Flame className="w-4 h-4 text-rose-700" />
-                <span>Chase Top Invoices</span>
+                <span>{t('action_chase', 'Chase Top Invoices')}</span>
               </a>
 
               <button
@@ -182,7 +188,7 @@ export function DashboardPage() {
                 className="min-h-[48px] px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 active:bg-white/30 text-white font-semibold text-sm border border-white/20 flex items-center justify-center gap-2 transition-all"
               >
                 <TrendingUp className="w-4 h-4 text-amber-300" />
-                <span>View 13-Week Forecast</span>
+                <span>{t('forecast.title', '13-Week Cash Flow Forecast')}</span>
               </button>
             </div>
           </div>
@@ -199,7 +205,7 @@ export function DashboardPage() {
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Total Receivables
+                {t('total_receivables', 'Total Receivables')}
               </span>
               <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
                 <Wallet className="w-4 h-4" />
@@ -209,7 +215,7 @@ export function DashboardPage() {
               {totals.formatted_receivables}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Active Ledger Balance</span>
+              <span className="text-slate-500">{t('invoices.all_statuses', 'Active Ledger Balance')}</span>
               <StatusBadge status="ACTIVE" label="Open" size="xs" />
             </div>
           </div>
@@ -218,7 +224,7 @@ export function DashboardPage() {
           <div className="bg-white border border-rose-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-rose-600 uppercase tracking-wide">
-                Total Overdue
+                {t('overdue_receivables', 'Total Overdue')}
               </span>
               <div className="w-9 h-9 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
                 <Clock className="w-4 h-4" />
@@ -228,7 +234,7 @@ export function DashboardPage() {
               {totals.formatted_overdue}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Past agreed credit terms</span>
+              <span className="text-slate-500">{t('statuses.OVERDUE', 'Past agreed credit terms')}</span>
               <StatusBadge status="OVERDUE" label="Critical" size="xs" />
             </div>
           </div>
@@ -237,7 +243,7 @@ export function DashboardPage() {
           <div className="bg-white border border-emerald-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wide">
-                Total Collected
+                {t('total_collected', 'Total Collected')}
               </span>
               <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                 <CheckCircle2 className="w-4 h-4" />
@@ -247,7 +253,7 @@ export function DashboardPage() {
               {totals.formatted_collected}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Confirmed bank deposits</span>
+              <span className="text-slate-500">{t('statuses.PAID', 'Settled')}</span>
               <StatusBadge status="PAID" label="Settled" size="xs" />
             </div>
           </div>
@@ -256,7 +262,7 @@ export function DashboardPage() {
           <div className="bg-white border border-purple-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-purple-700 uppercase tracking-wide">
-                Disputed Amount
+                {t('disputed_amount', 'Disputed Amount')}
               </span>
               <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
                 <ShieldAlert className="w-4 h-4" />
@@ -266,7 +272,7 @@ export function DashboardPage() {
               {totals.formatted_disputed}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Reminders paused</span>
+              <span className="text-slate-500">{t('statuses.DISPUTED', 'Under Review')}</span>
               <StatusBadge status="DISPUTED" label="Under Review" size="xs" />
             </div>
           </div>
@@ -275,7 +281,7 @@ export function DashboardPage() {
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Expected This Week
+                {t('expected_this_week', 'Expected This Week')}
               </span>
               <div className="w-9 h-9 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
                 <Calendar className="w-4 h-4" />
@@ -285,7 +291,7 @@ export function DashboardPage() {
               {formatted_expected_this_week}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Week 1 collection forecast</span>
+              <span className="text-slate-500">{t('forecast.velocity', 'Week 1 collection forecast')}</span>
               <StatusBadge status="SENT" label="Velocity" size="xs" />
             </div>
           </div>
@@ -294,7 +300,7 @@ export function DashboardPage() {
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Expected This Month
+                {t('expected_this_month', 'Expected This Month')}
               </span>
               <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600">
                 <TrendingUp className="w-4 h-4" />
@@ -304,7 +310,7 @@ export function DashboardPage() {
               {formatted_expected_this_month}
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">First 4 weeks projected</span>
+              <span className="text-slate-500">{t('forecast.inflow', 'First 4 weeks projected')}</span>
               <StatusBadge status="PAID" label="30d Inflow" size="xs" />
             </div>
           </div>
@@ -315,7 +321,7 @@ export function DashboardPage() {
           }`}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wide">
-                Lowest Cash (Runway)
+                {t('lowest_cash', 'Lowest Cash (Runway)')}
               </span>
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
                 lowest_forecast?.is_deficit ? 'bg-amber-200 text-amber-950 dark:bg-amber-900 dark:text-amber-100' : 'bg-slate-100 text-slate-700'
@@ -342,7 +348,7 @@ export function DashboardPage() {
           <div className="bg-white border border-slate-200/90 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow transition-shadow">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                Safety Buffer Target
+                {t('safety_buffer_target', 'Safety Buffer Target')}
               </span>
               <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-bold text-xs">
                 MIN
@@ -352,7 +358,7 @@ export function DashboardPage() {
               ₹5,00,000
             </div>
             <div className="mt-2 flex items-center justify-between text-xs">
-              <span className="text-slate-500">Current Deficit</span>
+              <span className="text-slate-500">{t('common.safety_buffer', 'Safety Buffer')}</span>
               <span className="font-mono font-bold text-rose-600">
                 {lowest_forecast?.is_deficit ? lowest_forecast.formatted_deficit : '₹0 (Safe)'}
               </span>
@@ -366,14 +372,14 @@ export function DashboardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
           <div>
             <h2 className="text-base sm:text-lg font-bold text-slate-900">
-              Receivables Ageing Analysis
+              {t('ageing_breakdown_title', 'Receivables Ageing Analysis')}
             </h2>
             <p className="text-xs sm:text-sm text-slate-500">
-              Distribution of overdue customer balances across ageing brackets
+              {t('ageing_subtitle', 'Distribution of overdue customer balances across ageing brackets')}
             </p>
           </div>
           <div className="text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg self-start sm:self-auto">
-            Total Overdue: <strong className="text-rose-600 font-mono">{totals.formatted_overdue}</strong>
+            {t('overdue_receivables', 'Total Overdue')}: <strong className="text-rose-600 font-mono">{totals.formatted_overdue}</strong>
           </div>
         </div>
 
@@ -382,7 +388,7 @@ export function DashboardPage() {
           {/* 0-30 Days */}
           <div className="p-4 rounded-xl border border-teal-200 bg-teal-50/50">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-teal-800 uppercase tracking-wide">0 - 30 Days</span>
+              <span className="text-xs font-bold text-teal-800 uppercase tracking-wide">{t('bucket_0_30', '0 - 30 Days')}</span>
               <StatusBadge status="CONFIRMED" label="Early Overdue" size="xs" />
             </div>
             <div className="text-xl font-extrabold text-slate-900 font-mono">
@@ -404,7 +410,7 @@ export function DashboardPage() {
           {/* 31-60 Days */}
           <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">31 - 60 Days</span>
+              <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">{t('bucket_31_60', '31 - 60 Days')}</span>
               <StatusBadge status="DUE_SOON" label="Moderate Risk" size="xs" />
             </div>
             <div className="text-xl font-extrabold text-slate-900 font-mono">
@@ -426,7 +432,7 @@ export function DashboardPage() {
           {/* 61-90 Days */}
           <div className="p-4 rounded-xl border border-orange-200 bg-orange-50/50">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-orange-800 uppercase tracking-wide">61 - 90 Days</span>
+              <span className="text-xs font-bold text-orange-800 uppercase tracking-wide">{t('bucket_61_90', '61 - 90 Days')}</span>
               <StatusBadge status="OVERDUE" label="High Priority" size="xs" />
             </div>
             <div className="text-xl font-extrabold text-slate-900 font-mono">
@@ -448,7 +454,7 @@ export function DashboardPage() {
           {/* 90+ Days */}
           <div className="p-4 rounded-xl border border-rose-200 bg-rose-50/50">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-rose-800 uppercase tracking-wide">90+ Days</span>
+              <span className="text-xs font-bold text-rose-800 uppercase tracking-wide">{t('bucket_90_plus', '90+ Days')}</span>
               <StatusBadge status="CRITICAL" label="Legal Risk" size="xs" />
             </div>
             <div className="text-xl font-extrabold text-rose-600 font-mono">
@@ -472,14 +478,14 @@ export function DashboardPage() {
         {ageing_buckets?.not_due && (
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
             <span>
-              ℹ️ Current Unmatured Receivables (Not yet due): <strong className="font-mono text-slate-900">{ageing_buckets.not_due.formatted_amount}</strong> across {ageing_buckets.not_due.count} invoices
+              ℹ️ {t('invoices.all_statuses', 'Current Unmatured Receivables')}: <strong className="font-mono text-slate-900">{ageing_buckets.not_due.formatted_amount}</strong> across {ageing_buckets.not_due.count} invoices
             </span>
             <button
               type="button"
               onClick={() => navigate('/invoices')}
               className="min-h-[48px] px-3 font-semibold text-indigo-600 hover:text-indigo-800 active:text-indigo-900 flex items-center gap-1"
             >
-              <span>View Invoices Ledger</span>
+              <span>{t('invoices.title', 'View Invoices Ledger')}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -499,14 +505,14 @@ export function DashboardPage() {
                 <Flame className="w-5 h-5" />
               </span>
               <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
-                CHASE THESE FIRST
+                {t('chase_these_first_title', 'CHASE THESE FIRST')}
               </h2>
               <span className="bg-rose-700 text-white font-extrabold text-xs px-2.5 py-0.5 rounded-full border border-rose-800 shadow-sm">
                 Top 5
               </span>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Smart priority ranked by overdue duration, balance impact on projected deficit, and customer reliability grade
+              {t('chase_these_first_subtitle', 'Smart algorithmic priority ranking based on aging, cash deficit impact, and credit rating')}
             </p>
           </div>
 
@@ -515,7 +521,7 @@ export function DashboardPage() {
             onClick={() => navigate('/followups')}
             className="min-h-[48px] px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors self-start sm:self-auto"
           >
-            <span>View All Follow-ups</span>
+            <span>{t('followups.title', 'View All Follow-ups')}</span>
             <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>
@@ -596,8 +602,10 @@ export function DashboardPage() {
 
                       {/* Reason String - SPEC requirement */}
                       <div className="p-3 rounded-xl bg-slate-100/90 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 leading-relaxed font-medium">
-                        <strong className="text-slate-950 dark:text-white font-bold">Priority Driver:</strong>{' '}
-                        <span>{item.reason}</span>
+                        <strong className="text-slate-950 dark:text-white font-bold">{t('priority_driver', 'Priority Driver')}:</strong>{' '}
+                        <span>
+                          {item.reason_code ? t(`chase_reasons.${item.reason_code}`, item.reason_params || {}, item.reason) : item.reason}
+                        </span>
                       </div>
                     </div>
 
@@ -605,7 +613,7 @@ export function DashboardPage() {
                     <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end justify-between gap-3 pt-3 lg:pt-0 border-t lg:border-t-0 border-slate-100 flex-shrink-0">
                       <div className="text-left sm:text-right">
                         <div className="text-xs text-slate-400 uppercase font-semibold">
-                          Balance Due
+                          {t('invoices.balance_due', 'Balance Due')}
                         </div>
                         <div className="text-2xl font-black text-slate-900 font-mono tracking-tight text-emerald-700">
                           {item.formatted_balance}
@@ -620,15 +628,15 @@ export function DashboardPage() {
                           className="flex-1 sm:flex-initial min-h-[48px] px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-colors"
                         >
                           <MessageSquare className="w-4 h-4" />
-                          <span>WhatsApp / Chase</span>
+                          <span>{t('followups.send_reminder', 'WhatsApp / Chase')}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => navigate(`/invoices/${item.invoice_id}`)}
                           className="min-h-[48px] min-w-[48px] px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center transition-colors"
-                          title="View Invoice"
-                          aria-label="View Invoice"
+                          title={t('invoices.view_detail', 'View Invoice')}
+                          aria-label={t('invoices.view_detail', 'View Invoice')}
                         >
                           <FileText className="w-4 h-4" />
                         </button>

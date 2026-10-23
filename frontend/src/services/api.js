@@ -26,6 +26,8 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.status = status;
     this.data = data;
+    this.code = data?.code || (typeof data?.error === 'string' ? data.error : null);
+    this.params = data?.params || {};
   }
 }
 

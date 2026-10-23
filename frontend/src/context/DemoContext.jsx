@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
+import i18n, { setAppLanguage } from '../i18n';
 
 const DemoContext = createContext(null);
 
@@ -7,9 +8,20 @@ export function DemoProvider({ children }) {
   const [demoDate, setDemoDateState] = useState('2026-10-22');
   const [business, setBusiness] = useState(null);
   const [safetyBufferPaise, setSafetyBufferPaise] = useState(50000000); // ₹5,00,000
-  const [language, setLanguageState] = useState(() => localStorage.getItem('baaki_language') || 'en');
-  const [textSize, setTextSizeState] = useState(() => localStorage.getItem('baaki_text_size') || 'normal');
+  const [language, setLanguageState] = useState(() => (typeof window !== 'undefined' && localStorage.getItem('baaki_language')) || 'en');
+  const [textSize, setTextSizeState] = useState(() => (typeof window !== 'undefined' && localStorage.getItem('baaki_text_size')) || 'normal');
   const [loading, setLoading] = useState(true);
+
+  // Sync state when i18n language changes
+  useEffect(() => {
+    const handleLang = (lng) => {
+      setLanguageState(lng);
+    };
+    i18n.on('languageChanged', handleLang);
+    return () => {
+      i18n.off('languageChanged', handleLang);
+    };
+  }, []);
 
   // Apply text size to root document
   useEffect(() => {
@@ -17,11 +29,6 @@ export function DemoProvider({ children }) {
     document.documentElement.classList.add(`text-size-${textSize}`);
     localStorage.setItem('baaki_text_size', textSize);
   }, [textSize]);
-
-  // Apply language preference to localStorage
-  useEffect(() => {
-    localStorage.setItem('baaki_language', language);
-  }, [language]);
 
   const loadSettings = useCallback(async () => {
     try {
@@ -105,7 +112,7 @@ export function DemoProvider({ children }) {
 
   const setLanguage = (lang) => {
     setLanguageState(lang);
-    api.put('/settings', { language: lang }).catch(() => {});
+    setAppLanguage(lang);
   };
 
   return (

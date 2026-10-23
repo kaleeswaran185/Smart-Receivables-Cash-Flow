@@ -227,7 +227,17 @@ export function getSharedCashModel(db, options = {}) {
         closingCashPaise: weekCloseCash,
         safetyBufferPaise,
         deficitPaise,
-        formattedDeficit: formatIndianCurrency(deficitPaise)
+        formattedDeficit: formatIndianCurrency(deficitPaise),
+        code: 'SHORTAGE_DEFICIT',
+        params: {
+          weekNumber: bucket.weekNumber,
+          deficit: formatIndianCurrency(deficitPaise),
+          deficitPaise,
+          closingBalance: formatIndianCurrency(weekCloseCash),
+          startDate: bucket.startDate,
+          endDate: bucket.endDate,
+          safetyBuffer: formatIndianCurrency(safetyBufferPaise)
+        }
       };
     }
 
@@ -344,19 +354,34 @@ export function getSharedCashModel(db, options = {}) {
     else if (totalScore >= 65) label = '⚡ High Priority';
     else if (totalScore >= 40) label = '⚠️ Medium Priority';
 
-    // Construct detailed action reason string
+    // Construct detailed action reason string and structured translation codes
     const balFormatted = formatIndianCurrency(inv.balance_paise);
     let reason = `${balFormatted} Overdue ${daysOverdue} days (Grade ${custGrade} customer).`;
+    let reason_code = 'CHASE_REASON_OVERDUE_GENERAL';
 
     if (coversShortage) {
       reason += ` Collecting this covers the Week ${shortageWeekNum} cash deficit (${firstShortageWeek.formattedDeficit} below safety buffer).`;
+      reason_code = 'CHASE_REASON_OVERDUE_SHORTAGE';
     } else if (reducesGap) {
       reason += ` Collecting this substantially bridges the Week ${shortageWeekNum} cash gap.`;
+      reason_code = 'CHASE_REASON_OVERDUE_REDUCES_GAP';
     } else if (daysOverdue > 30) {
       reason += ` High aging risk past ${daysOverdue} days.`;
+      reason_code = 'CHASE_REASON_OVERDUE_HIGH_AGING';
     } else {
       reason += ` High priority collection for working capital.`;
+      reason_code = 'CHASE_REASON_OVERDUE_GENERAL';
     }
+
+    const reason_params = {
+      amountPaise: inv.balance_paise,
+      formattedAmount: balFormatted,
+      daysOverdue,
+      customerGrade: custGrade,
+      shortageWeek: shortageWeekNum,
+      deficitFormatted: firstShortageWeek ? firstShortageWeek.formattedDeficit : '',
+      formattedDeficit: firstShortageWeek ? firstShortageWeek.formattedDeficit : ''
+    };
 
     return {
       invoice_id: inv.id,
@@ -380,6 +405,10 @@ export function getSharedCashModel(db, options = {}) {
         delay: delayScore
       },
       reason,
+      reason_code,
+      reason_params,
+      code: reason_code,
+      params: reason_params,
       can_cover_gap: coversShortage,
       reduces_gap: reducesGap,
       customer_grade: custGrade,

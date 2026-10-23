@@ -1,4 +1,4 @@
-import React from 'react';
+import { useTranslation } from '../../utils/i18n';
 
 /**
  * Renders status strictly as text PLUS solid high-contrast color indicator.
@@ -8,8 +8,17 @@ import React from 'react';
  * 3. Badge background/border contrast >= 3.0:1 against surrounding card/page.
  */
 export function StatusBadge({ status, label, size = 'sm', className = '' }) {
+  const { t } = useTranslation('statuses');
   const normalized = (status || '').toUpperCase().replace(/[\s-]/g, '_');
-  const displayLabel = label || status || 'UNKNOWN';
+  
+  let translatedText = label;
+  if (!label) {
+    translatedText = t(normalized, status || 'UNKNOWN');
+  } else {
+    const labelKey = String(label).toUpperCase().replace(/[\s-]/g, '_');
+    translatedText = t(labelKey, label);
+  }
+  const displayLabel = translatedText;
 
   let colorClasses = 'badge-slate';
   let dotColor = 'bg-white dark:bg-slate-900';

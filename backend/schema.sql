@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS customers (
   email TEXT,
   credit_limit_paise INTEGER DEFAULT 0,
   credit_period_days INTEGER DEFAULT 30,
+  preferred_language TEXT NOT NULL DEFAULT 'en' CHECK(preferred_language IN ('en', 'hi', 'ta')),
   notes TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP

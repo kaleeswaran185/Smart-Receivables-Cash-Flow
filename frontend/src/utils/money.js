@@ -166,20 +166,29 @@ export function amountInWords(paise) {
 }
 
 /**
- * Formats a YYYY-MM-DD date into Indian business standard (e.g., 22 Oct 2026)
+ * Formats a YYYY-MM-DD date into Indian business standard (e.g., 22 Oct 2026 / 22 अक्टू 2026)
  * @param {string} dateStr - YYYY-MM-DD
+ * @param {string} [lang='en'] - 'en', 'hi', or 'ta'
  * @returns {string}
  */
-export function formatDate(dateStr) {
+export function formatDate(dateStr, lang) {
   if (!dateStr) return '—';
   try {
+    const currentLang = lang || (typeof document !== 'undefined' ? (document.documentElement.lang || 'en') : 'en');
     const [year, month, day] = dateStr.split('-').map(Number);
-    const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-IN', {
+    const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+    const localeMap = {
+      en: 'en-IN',
+      hi: 'hi-IN',
+      ta: 'ta-IN'
+    };
+    const localeTag = localeMap[currentLang] || 'en-IN';
+    return new Intl.DateTimeFormat(localeTag, {
       day: 'numeric',
       month: 'short',
-      year: 'numeric'
-    });
+      year: 'numeric',
+      timeZone: 'UTC'
+    }).format(date);
   } catch (e) {
     return dateStr;
   }

@@ -19,9 +19,11 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
 import { useDemo } from '../context/DemoContext';
+import { useTranslation } from '../utils/i18n';
 
 export function InvoicesPage() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation('invoices');
   const [searchParams, setSearchParams] = useSearchParams();
   const { demoDate } = useDemo();
 
@@ -147,10 +149,10 @@ export function InvoicesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Invoices & Receivables Ledger
+            {t('title', 'Invoices Ledger')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Monitor receivables, track customer credit periods, and verify payment settlements
+            {t('subtitle', 'Track, issue, and manage GST-compliant tax invoices & bills of supply')}
           </p>
         </div>
 
@@ -162,7 +164,7 @@ export function InvoicesPage() {
             title="Refresh Invoices"
           >
             <RefreshCw className="w-4 h-4 text-slate-500" />
-            <span className="hidden sm:inline">Refresh</span>
+            <span className="hidden sm:inline">{t('common.sync_data', 'Refresh')}</span>
           </button>
 
           <button
@@ -171,7 +173,7 @@ export function InvoicesPage() {
             className="min-h-[48px] px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition-colors"
           >
             <Plus className="w-5 h-5" />
-            <span>New Tax Invoice</span>
+            <span>{t('create_title', 'New Tax Invoice')}</span>
           </button>
         </div>
       </div>
@@ -184,7 +186,7 @@ export function InvoicesPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search invoice # or customer..."
+              placeholder={t('common.search_invoices', 'Search invoices by number or customer...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full min-h-[48px] pl-10 pr-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
@@ -198,7 +200,7 @@ export function InvoicesPage() {
               onChange={(e) => setCustomerFilter(e.target.value)}
               className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="ALL">All Customers ({customers.length})</option>
+              <option value="ALL">{t('common.filter_all', 'All')} ({customers.length})</option>
               {customers.map(c => (
                 <option key={c.id} value={c.id}>
                   {c.name} {c.company_name ? `(${c.company_name})` : ''}
@@ -214,14 +216,14 @@ export function InvoicesPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="OVERDUE">Overdue Only</option>
-              <option value="DUE_SOON">Due Soon (Next 7 Days)</option>
-              <option value="SENT">Sent / Unpaid</option>
-              <option value="PARTIALLY_PAID">Part Paid</option>
-              <option value="PAID">Fully Paid</option>
-              <option value="DISPUTED">Disputed</option>
-              <option value="DRAFT">Draft</option>
+              <option value="ALL">{t('all_statuses', 'All Statuses')}</option>
+              <option value="OVERDUE">{t('statuses.OVERDUE', 'Overdue')}</option>
+              <option value="DUE_SOON">{t('statuses.DUE_SOON', 'Due Soon')}</option>
+              <option value="SENT">{t('statuses.SENT', 'Sent')}</option>
+              <option value="PARTIALLY_PAID">{t('statuses.PART_PAID', 'Part Paid')}</option>
+              <option value="PAID">{t('statuses.PAID', 'Paid')}</option>
+              <option value="DISPUTED">{t('statuses.DISPUTED', 'Disputed')}</option>
+              <option value="DRAFT">{t('statuses.DRAFT', 'Draft')}</option>
             </select>
           </div>
 
@@ -232,11 +234,11 @@ export function InvoicesPage() {
               onChange={(e) => setOverdueFilter(e.target.value)}
               className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="ALL">Any Overdue Days</option>
-              <option value="OVERDUE">Any Overdue (&gt;0 days)</option>
-              <option value="OVERDUE_15">&gt; 15 Days Overdue</option>
-              <option value="OVERDUE_30">&gt; 30 Days Overdue</option>
-              <option value="OVERDUE_45">&gt; 45 Days Overdue (Legal Risk)</option>
+              <option value="ALL">{t('common.filter_all', 'All')}</option>
+              <option value="OVERDUE">&gt;0 {t('customers.days_suffix_plural', 'Days Overdue')}</option>
+              <option value="OVERDUE_15">&gt; 15 {t('customers.days_suffix_plural', 'Days Overdue')}</option>
+              <option value="OVERDUE_30">&gt; 30 {t('customers.days_suffix_plural', 'Days Overdue')}</option>
+              <option value="OVERDUE_45">&gt; 45 {t('customers.days_suffix_plural', 'Days Overdue')}</option>
             </select>
           </div>
         </div>
@@ -253,7 +255,7 @@ export function InvoicesPage() {
               className="min-h-[36px] px-3 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold flex items-center gap-1 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
-              <span>Clear All Filters</span>
+              <span>{t('common.clear_filters', 'Clear Filters')}</span>
             </button>
           </div>
         )}
@@ -292,7 +294,7 @@ export function InvoicesPage() {
                       onClick={() => toggleSort('invoice_number')}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span>Invoice #</span>
+                        <span>{t('invoice_number', 'Invoice #')}</span>
                         <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                       </div>
                     </th>
@@ -301,7 +303,7 @@ export function InvoicesPage() {
                       onClick={() => toggleSort('customer_name')}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span>Customer</span>
+                        <span>{t('customer', 'Customer')}</span>
                         <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                       </div>
                     </th>
@@ -310,17 +312,17 @@ export function InvoicesPage() {
                       onClick={() => toggleSort('due_date')}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span>Due Date</span>
+                        <span>{t('due_date', 'Due Date')}</span>
                         <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                       </div>
                     </th>
-                    <th className="p-3 sm:p-4">Overdue</th>
+                    <th className="p-3 sm:p-4">{t('statuses.OVERDUE', 'Overdue')}</th>
                     <th
                       className="p-3 sm:p-4 text-right cursor-pointer hover:bg-slate-100"
                       onClick={() => toggleSort('total_paise')}
                     >
                       <div className="flex items-center justify-end gap-1.5">
-                        <span>Total (₹)</span>
+                        <span>{t('total_amount', 'Total (₹)')}</span>
                         <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                       </div>
                     </th>
@@ -329,12 +331,12 @@ export function InvoicesPage() {
                       onClick={() => toggleSort('balance_paise')}
                     >
                       <div className="flex items-center justify-end gap-1.5">
-                        <span>Balance Due</span>
+                        <span>{t('balance_due', 'Balance Due')}</span>
                         <ArrowUpDown className="w-3.5 h-3.5 text-slate-400" />
                       </div>
                     </th>
-                    <th className="p-3 sm:p-4">Status</th>
-                    <th className="p-3 sm:p-4 text-center">Action</th>
+                    <th className="p-3 sm:p-4">{t('common.status', 'Status')}</th>
+                    <th className="p-3 sm:p-4 text-center">{t('common.action', 'Action')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -360,7 +362,7 @@ export function InvoicesPage() {
                           )}
                         </td>
                         <td className="p-3 sm:p-4 font-mono text-slate-600">
-                          {formatDate(inv.due_date)}
+                          {formatDate(inv.due_date, language)}
                         </td>
                         <td className="p-3 sm:p-4">
                           {inv.balance_paise > 0 && inv.status !== 'PAID' ? (
@@ -394,7 +396,7 @@ export function InvoicesPage() {
                               className="min-h-[48px] px-3 py-1.5 rounded-lg text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 font-semibold text-xs transition-colors inline-flex items-center gap-1"
                             >
                               <FileText className="w-3.5 h-3.5" />
-                              <span>View</span>
+                              <span>{t('view_detail', 'View')}</span>
                             </button>
 
                             {inv.balance_paise > 0 && inv.status !== 'PAID' && (
@@ -405,7 +407,7 @@ export function InvoicesPage() {
                                 title="Record Settlement"
                               >
                                 <CreditCard className="w-3.5 h-3.5" />
-                                <span>Pay</span>
+                                <span>{t('payments.record_payment', 'Pay')}</span>
                               </button>
                             )}
                           </div>
@@ -446,14 +448,14 @@ export function InvoicesPage() {
 
                   <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-100">
                     <div>
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Due Date</span>
-                      <span className="font-mono text-slate-700">{formatDate(inv.due_date)}</span>
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">{t('due_date', 'Due Date')}</span>
+                      <span className="font-mono text-slate-700">{formatDate(inv.due_date, language)}</span>
                       {daysOverdue > 0 && inv.balance_paise > 0 && inv.status !== 'PAID' && (
-                        <span className="text-rose-600 font-bold block text-[10px]">{daysOverdue} days overdue</span>
+                        <span className="text-rose-600 font-bold block text-[10px]">{daysOverdue} {t('customers.days_suffix_plural', 'days overdue')}</span>
                       )}
                     </div>
                     <div className="text-right">
-                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">Balance Due</span>
+                      <span className="text-slate-400 block text-[10px] uppercase font-semibold">{t('balance_due', 'Balance Due')}</span>
                       <span className="font-mono font-bold text-emerald-700 text-base">
                         {formatIndianCurrency(inv.balance_paise)}
                       </span>
@@ -468,7 +470,7 @@ export function InvoicesPage() {
                       className="flex-1 min-h-[48px] rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                     >
                       <FileText className="w-4 h-4" />
-                      <span>View Details</span>
+                      <span>{t('view_detail', 'View Details')}</span>
                     </button>
 
                     {inv.balance_paise > 0 && inv.status !== 'PAID' && (
@@ -478,7 +480,7 @@ export function InvoicesPage() {
                         className="flex-1 min-h-[48px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                       >
                         <CreditCard className="w-4 h-4" />
-                        <span>Record Pay</span>
+                        <span>{t('payments.record_payment', 'Record Pay')}</span>
                       </button>
                     )}
                   </div>

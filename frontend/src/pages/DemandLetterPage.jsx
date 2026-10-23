@@ -5,10 +5,12 @@ import api from '../services/api';
 import { formatIndianCurrency, formatDate, amountInWords } from '../utils/money';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { useTranslation } from '../utils/i18n';
 
 export function DemandLetterPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { language } = useTranslation();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -318,6 +320,53 @@ export function DemandLetterPage() {
             </div>
           </div>
         </div>
+
+        {/* Translated Copy of Letter Body for Non-English Languages (Hindi / Tamil) */}
+        {language !== 'en' && (
+          <div className="mt-8 pt-8 border-t-2 border-dashed border-slate-300 space-y-4">
+            <div className="text-center">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                {language === 'hi' ? 'अनुवादित प्रति (अनौपचारिक संदर्भ हेतु)' : 'மொழிபெயர்ப்பு நகல் (குறிப்புக்காக)'}
+              </span>
+              <h2 className="text-lg font-bold text-slate-900 mt-2">
+                {language === 'hi' ? 'भुगतान मांग पत्र' : 'பணம் செலுத்துவதற்கான கோரிக்கை கடிதம்'}
+              </h2>
+            </div>
+
+            <div className="p-3.5 bg-amber-50/80 border border-amber-300 rounded-xl text-xs text-amber-950 font-medium leading-relaxed">
+              <strong>{language === 'hi' ? 'सूचना:' : 'அறிவிப்பு:'}</strong>{' '}
+              {language === 'hi'
+                ? 'यह पत्र बकाया बिलों के संबंध में व्यापारिक प्रतिष्ठान की ओर से है। यह जीएसटी विभाग का नोटिस नहीं है और न ही किसी वकील का कानूनी नोटिस है।'
+                : 'இந்தக் கடிதம் நிலுவையில் உள்ள இன்வாய்ஸ்கள் தொடர்பாக வணிக நிறுவனத்திடமிருந்து அனுப்பப்படுகிறது. இது ஜிஎஸ்டி துறையின் அறிவிப்போ அல்லது வழக்கறிஞரின் சட்ட அறிவிப்போ அல்ல.'}
+            </div>
+
+            <div className="space-y-3 text-xs sm:text-sm text-slate-800 leading-relaxed pt-2">
+              <div className="font-bold text-slate-900">
+                {language === 'hi'
+                  ? `विषय: बिल #${invoice.invoice_number} के तत्काल भुगतान हेतु औपचारिक मांग पत्र`
+                  : `பொருள்: நிலுவையில் உள்ள இன்வாய்ஸ் #${invoice.invoice_number}-ஐ உடனடியாக செலுத்துவதற்கான முறையான கோரிக்கை கடிதம்`}
+              </div>
+              <p>
+                {language === 'hi' ? `प्रिय ${invoice.customer_name},` : `வணக்கம் ${invoice.customer_name},`}
+              </p>
+              <p>
+                {language === 'hi'
+                  ? `हम आपका ध्यान बिल ${invoice.invoice_number} की ओर आकर्षित करना चाहते हैं जो दिनांक ${formatDate(invoice.invoice_date, 'hi')} को जारी किया गया था और हमारी आपसी सहमति के अनुसार ${formatDate(invoice.due_date, 'hi')} को देय था।`
+                  : `${formatDate(invoice.invoice_date, 'ta')} அன்று வழங்கப்பட்டு, நமது பரஸ்பர கடன் விதிமுறைகளின்படி ${formatDate(invoice.due_date, 'ta')} அன்று செலுத்தப்பட வேண்டிய இன்வாய்ஸ் ${invoice.invoice_number}-ஐ உடனடியாக செலுத்துமாறு கேட்டுக்கொள்கிறோம்.`}
+              </p>
+              <p>
+                {language === 'hi'
+                  ? `आज दिनांक ${formatDate(today, 'hi')} तक हमारे लेखा रिकॉर्ड के अनुसार यह बिल बकाया है जिसका कुल देय शेष ${formatIndianCurrency(invoice.balance_paise)} है।`
+                  : `இன்று ${formatDate(today, 'ta')} வரை எங்கள் கணக்கு பதிவுகளின்படி, இந்த இன்வாய்ஸ் நிலுவையில் உள்ளது. செலுத்த வேண்டிய மொத்த தொகை ${formatIndianCurrency(invoice.balance_paise)} ஆகும்.`}
+              </p>
+              <p>
+                {language === 'hi'
+                  ? `कृपया आगामी आपूर्ति में रुकावट से बचने के लिए ${formatDate(deadlineDate, 'hi')} तक या उससे पहले इस राशि का भुगतान करने की व्यवस्था करें।`
+                  : `டெலிவரி தடங்கல்களைத் தவிர்க்க ${formatDate(deadlineDate, 'ta')} அன்று அல்லது அதற்கு முன்னதாக தயவுசெய்து இந்தத் தொகையைச் செலுத்த ஏற்பாடு செய்யவும்.`}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

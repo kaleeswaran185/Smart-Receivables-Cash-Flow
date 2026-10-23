@@ -48,6 +48,7 @@ export function seedDatabase(db, options = { force: false }) {
     insertSetting.run('safety_buffer_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
     insertSetting.run('cash_flow_alert_threshold_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
     insertSetting.run('annual_turnover_paise', '6500000000'); // ₹6.5 Crore (> ₹5 Crore)
+    insertSetting.run('language', 'en');
 
     // 2. Business: Sharma Packaging [DEMO] (Pune, Maharashtra)
     // PAN 4th character must be 'Z' so it cannot match a real business
@@ -211,13 +212,17 @@ export function seedDatabase(db, options = { force: false }) {
     const insertCustStmt = db.prepare(`
       INSERT INTO customers (
         business_id, name, company_name, gstin, state_code, state,
-        address, city, pincode, phone, email, credit_limit_paise, credit_period_days
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        address, city, pincode, phone, email, credit_limit_paise, credit_period_days, preferred_language
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const customers = [];
     customerDefs.forEach((c, idx) => {
       const gstin = generateValidGSTIN(c.stateCode, c.pan, '1');
+      let lang = 'en';
+      if (c.name.includes('Chennai')) lang = 'ta';
+      else if (c.name.includes('Jaipur') || c.name.includes('Noida') || c.name.includes('Indore')) lang = 'hi';
+
       const res = insertCustStmt.run(
         businessId,
         c.name,
@@ -231,7 +236,8 @@ export function seedDatabase(db, options = { force: false }) {
         `+91 99999 ${String(10000 + idx)}`,
         `accounts@${c.name.toLowerCase().replace(/[^a-z]/g, '')}.demo`,
         rupeesToPaise(c.creditLimit),
-        30
+        30,
+        lang
       );
       customers.push({
         id: res.lastInsertRowid,

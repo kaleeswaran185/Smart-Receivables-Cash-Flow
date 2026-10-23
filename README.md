@@ -285,5 +285,16 @@ npm test
 
 ---
 
+## 🌐 Multi-Language Localisation (English, हिन्दी, தமிழ்)
+
+Baaki supports complete multi-language localisation across English, Hindi (हिन्दी), and Tamil (தமிழ்):
+- **True Trilingual Support**: All screens, navigation, forms, notifications, error states, and cash forecast scenario alerts are fully translated into natural, idiomatic Hindi and Tamil suited for small-business owners.
+- **Canonical Terminology**: Standardized against Indian business usage in [docs/TRANSLATION_GLOSSARY.md](docs/TRANSLATION_GLOSSARY.md).
+- **Self-Hosted Typography**: Packaged with `@fontsource/noto-sans-devanagari` and `@fontsource/noto-sans-tamil` with line-height safeguards to avoid clipping Devanagari matras and Tamil diacritics.
+- **Customer Preferred Language**: Customers have a `preferred_language` preference, automatically adapting WhatsApp, SMS, and email follow-up dispatch templates.
+- **Review Notice**: *Translations were generated following standard MSME accounting terminology. For production deployments in regional markets, translations should be reviewed and verified by a native speaker.*
+
+---
+
 ## 📄 License
 MIT License. Built for Indian Small Businesses and MSMEs.

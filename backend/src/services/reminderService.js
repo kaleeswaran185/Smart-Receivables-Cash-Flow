@@ -24,33 +24,58 @@ export const STAGE_META = {
   [45]: { name: 'LEGAL_NOTICE', label: 'Legal & MSME Demand (45 days)', severity: 'CRITICAL' }
 };
 
-/**
- * Generates reminder message text for WhatsApp and SMS.
- */
-export function generateMessageText({ stage, invoice, customer, business, payUrl }) {
-  const bizName = business.name || 'Sharma Packaging';
-  const custName = customer.name || 'Customer';
-  const invNum = invoice.invoice_number;
-  const balance = formatIndianCurrency(invoice.balance_paise);
-  const dueDate = invoice.due_date;
-  const link = payUrl || `https://baaki.app/pay/${invoice.payment_token || invoice.id}`;
-
-  switch (stage) {
-    case -3:
-      return `Dear ${custName}, this is a gentle reminder from ${bizName} that invoice ${invNum} for ${balance} is due on ${dueDate}. View invoice and payment options: ${link}`;
-    case 0:
-      return `Dear ${custName}, invoice ${invNum} for ${balance} from ${bizName} is due today (${dueDate}). Please process the payment at your earliest convenience: ${link}`;
-    case 7:
-      return `Dear ${custName}, invoice ${invNum} (${balance}) from ${bizName} was due on ${dueDate} and is now 7 days overdue. Please confirm payment status or settle online: ${link}`;
-    case 15:
-      return `Attention ${custName}: Invoice ${invNum} for ${balance} is now 15 days overdue. Kindly release payment today to avoid any hold on ongoing dispatches: ${link}`;
-    case 30:
-      return `URGENT NOTICE: Invoice ${invNum} (${balance}) is 30 days overdue. Account credit is temporarily frozen pending settlement. Please clear immediately: ${link}`;
-    case 45:
-      return `FINAL DEMAND: Invoice ${invNum} for ${balance} is 45+ days overdue. This account is scheduled for MSME Samadhaan escalation and legal recovery unless cleared within 48 hours: ${link}`;
-    default:
-      return `Reminder from ${bizName}: Invoice ${invNum} of ${balance} is outstanding. Pay here: ${link}`;
+export const REMINDER_TEMPLATES = {
+  en: {
+    [-3]: 'Dear {{customer}}, this is a gentle reminder from {{business}} that invoice {{invoiceNumber}} for {{amount}} is due on {{dueDate}}. View invoice and payment options: {{paymentLink}}',
+    [0]: 'Dear {{customer}}, invoice {{invoiceNumber}} for {{amount}} from {{business}} is due today ({{dueDate}}). Please process the payment at your earliest convenience: {{paymentLink}}',
+    [7]: 'Dear {{customer}}, invoice {{invoiceNumber}} ({{amount}}) from {{business}} was due on {{dueDate}} and is now 7 days overdue. Please confirm payment status or settle online: {{paymentLink}}',
+    [15]: 'Attention {{customer}}: Invoice {{invoiceNumber}} for {{amount}} is now 15 days overdue. Kindly release payment today to avoid any hold on ongoing dispatches: {{paymentLink}}',
+    [30]: 'URGENT NOTICE: Invoice {{invoiceNumber}} ({{amount}}) is 30 days overdue. Account credit is temporarily frozen pending settlement. Please clear immediately: {{paymentLink}}',
+    [45]: 'FINAL DEMAND: Invoice {{invoiceNumber}} for {{amount}} is 45+ days overdue. This account is scheduled for MSME Samadhaan escalation and legal recovery unless cleared within 48 hours: {{paymentLink}}',
+    default: 'Reminder from {{business}}: Invoice {{invoiceNumber}} of {{amount}} is outstanding. Pay here: {{paymentLink}}'
+  },
+  hi: {
+    [-3]: 'नमस्ते {{customer}}, {{business}} की ओर से विनम्र स्मरण पत्र: बिल {{invoiceNumber}} का {{amount}} भुगतान {{dueDate}} को देय है। विवरण और ऑनलाइन भुगतान: {{paymentLink}}',
+    [0]: 'नमस्ते {{customer}}, {{business}} का बिल {{invoiceNumber}} ({{amount}}) आज ({{dueDate}}) देय है। कृपया यथाशीघ्र भुगतान करें: {{paymentLink}}',
+    [7]: 'नमस्ते {{customer}}, {{business}} का बिल {{invoiceNumber}} ({{amount}}) {{dueDate}} को देय था और 7 दिन अतिदेय है। कृपया स्थिति बताएं या ऑनलाइन भुगतान करें: {{paymentLink}}',
+    [15]: 'ध्यान दें {{customer}}: बिल {{invoiceNumber}} का {{amount}} भुगतान 15 दिन अतिदेय है। आपूर्ति में रुकावट से बचने के लिए कृपया आज भुगतान करें: {{paymentLink}}',
+    [30]: 'अति आवश्यक सूचना: बिल {{invoiceNumber}} ({{amount}}) 30 दिन अतिदेय है। खाता क्रेडिट अस्थायी रूप से रोक दिया गया है। कृपया तुरंत भुगतान करें: {{paymentLink}}',
+    [45]: 'अंतिम मांग पत्र: बिल {{invoiceNumber}} का {{amount}} 45+ दिन अतिदेय है। 48 घंटों में भुगतान न होने पर कानूनी वसूली और MSME समाधान प्रक्रिया शुरू होगी: {{paymentLink}}',
+    default: '{{business}} से स्मरण पत्र: बिल {{invoiceNumber}} का {{amount}} बकाया है। यहाँ भुगतान करें: {{paymentLink}}'
+  },
+  ta: {
+    [-3]: 'வணக்கம் {{customer}}, {{business}}-இன் இன்வாய்ஸ் {{invoiceNumber}}-க்கான {{amount}} {{dueDate}} அன்று செலுத்தப்பட வேண்டும் என்பதற்கான நினைவூட்டல். விவரங்கள் மற்றும் கட்டண இணைப்பு: {{paymentLink}}',
+    [0]: 'வணக்கம் {{customer}}, {{business}}-இன் இன்வாய்ஸ் {{invoiceNumber}}-க்கான {{amount}} இன்று ({{dueDate}}) செலுத்தப்பட வேண்டும். தயவுசெய்து உடனடியாக செலுத்தவும்: {{paymentLink}}',
+    [7]: 'வணக்கம் {{customer}}, {{business}}-இன் இன்வாய்ஸ் {{invoiceNumber}} ({{amount}}) {{dueDate}} அன்று செலுத்தப்பட வேண்டியது, 7 நாட்கள் தாமதமாகியுள்ளது. உறுதிப்படுத்தவும் அல்லது ஆன்லைனில் செலுத்தவும்: {{paymentLink}}',
+    [15]: 'கவனத்திற்கு {{customer}}: இன்வாய்ஸ் {{invoiceNumber}}-க்கான {{amount}} 15 நாட்கள் தாமதமாகியுள்ளது. விநியோகத் தடையைத் தவிர்க்க தயவுசெய்து இன்று செலுத்தவும்: {{paymentLink}}',
+    [30]: 'அவசர அறிவிப்பு: இன்வாய்ஸ் {{invoiceNumber}} ({{amount}}) 30 நாட்கள் தாமதமாகியுள்ளது. கணக்கு கடன் தற்காலிகமாக நிறுத்தப்பட்டுள்ளது. உடனே செலுத்தவும்: {{paymentLink}}',
+    [45]: 'இறுதி கோரிக்கை: இன்வாய்ஸ் {{invoiceNumber}}-க்கான {{amount}} 45+ நாட்கள் தாமதமாகியுள்ளது. 48 மணி நேரத்திற்குள் தீர்க்கப்படாவிட்டால் MSME சமாதான் மற்றும் சட்ட நடவடிக்கைகள் தொடங்கப்படும்: {{paymentLink}}',
+    default: '{{business}}-இன் நினைவூட்டல்: இன்வாய்ஸ் {{invoiceNumber}}-க்கான {{amount}} நிலுவையில் உள்ளது. இங்கே செலுத்தவும்: {{paymentLink}}'
   }
+};
+
+/**
+ * Generates reminder message text for WhatsApp and SMS in the requested language (en, hi, ta).
+ */
+export function generateMessageText({ stage, invoice, customer, business, payUrl, lang = 'en' }) {
+  const bizName = (business && business.name) || 'Sharma Packaging';
+  const custName = (customer && customer.name) || 'Customer';
+  const invNum = invoice ? invoice.invoice_number : '';
+  const balance = invoice ? formatIndianCurrency(invoice.balance_paise) : '₹0';
+  const dueDate = invoice ? invoice.due_date : '';
+  const link = payUrl || `https://baaki.app/pay/${(invoice && (invoice.payment_token || invoice.id)) || ''}`;
+  const validLang = (lang === 'hi' || lang === 'ta') ? lang : 'en';
+
+  const tplGroup = REMINDER_TEMPLATES[validLang] || REMINDER_TEMPLATES.en;
+  const rawTemplate = tplGroup[stage] || tplGroup.default;
+
+  return rawTemplate
+    .replace(/\{\{customer\}\}/g, custName)
+    .replace(/\{\{business\}\}/g, bizName)
+    .replace(/\{\{invoiceNumber\}\}/g, invNum)
+    .replace(/\{\{amount\}\}/g, balance)
+    .replace(/\{\{dueDate\}\}/g, dueDate)
+    .replace(/\{\{paymentLink\}\}/g, link);
 }
 
 /**
@@ -190,7 +215,8 @@ export function getActionableFollowups(db) {
       c.name as customer_name,
       c.company_name as customer_company,
       c.phone as customer_phone,
-      c.email as customer_email
+      c.email as customer_email,
+      c.preferred_language as preferred_language
     FROM invoices i
     JOIN customers c ON i.customer_id = c.id
     WHERE i.status NOT IN ('PAID', 'CANCELLED', 'DRAFT')
@@ -203,12 +229,14 @@ export function getActionableFollowups(db) {
   invoices.forEach(inv => {
     const evaluation = evaluateInvoiceReminder(db, inv, today);
     if (evaluation.isActionable) {
+      const custLang = inv.preferred_language || 'en';
       const messageText = generateMessageText({
         stage: evaluation.stage,
         invoice: inv,
         customer: { name: inv.customer_name },
         business,
-        payUrl: `https://baaki.app/pay/${inv.payment_token || inv.id}`
+        payUrl: `https://baaki.app/pay/${inv.payment_token || inv.id}`,
+        lang: custLang
       });
 
       followups.push({
@@ -218,6 +246,7 @@ export function getActionableFollowups(db) {
         customer_name: inv.customer_name,
         customer_phone: inv.customer_phone,
         customer_email: inv.customer_email,
+        preferred_language: custLang,
         total_paise: inv.total_paise,
         paid_paise: inv.paid_paise,
         balance_paise: inv.balance_paise,

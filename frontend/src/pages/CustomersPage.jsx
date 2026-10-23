@@ -23,9 +23,11 @@ import { formatIndianCurrency, formatDate } from '../utils/money';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { useTranslation } from '../utils/i18n';
 
 export function CustomersPage() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation('customers');
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,7 +47,8 @@ export function CustomersPage() {
     phone: '',
     email: '',
     credit_period_days: '30',
-    credit_limit_rupees: '200000'
+    credit_limit_rupees: '200000',
+    preferred_language: 'en'
   });
   const [addError, setAddError] = useState(null);
   const [submittingAdd, setSubmittingAdd] = useState(false);
@@ -55,7 +58,7 @@ export function CustomersPage() {
     e.preventDefault();
     setAddError(null);
     if (!addForm.name.trim()) {
-      setAddError('Customer name is required.');
+      setAddError(t('errors.ERR_VALIDATION', 'Customer name is required.'));
       return;
     }
     try {
@@ -70,7 +73,8 @@ export function CustomersPage() {
         phone: addForm.phone.trim() || null,
         email: addForm.email.trim() || null,
         credit_period_days: Number(addForm.credit_period_days) || 30,
-        credit_limit_rupees: Number(addForm.credit_limit_rupees) || 0
+        credit_limit_rupees: Number(addForm.credit_limit_rupees) || 0,
+        preferred_language: addForm.preferred_language || 'en'
       });
       setShowAddModal(false);
       setAddForm({
@@ -83,7 +87,8 @@ export function CustomersPage() {
         phone: '',
         email: '',
         credit_period_days: '30',
-        credit_limit_rupees: '200000'
+        credit_limit_rupees: '200000',
+        preferred_language: 'en'
       });
       setToastMessage(`Customer ${res.name} added successfully!`);
       setTimeout(() => setToastMessage(null), 4000);
@@ -146,10 +151,10 @@ export function CustomersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Customer Reliability & Accounts Directory
+            {t('title', 'Customers & Parties')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Credit terms, behavioral payment delay stats, and AI reliability grading (A/B/C)
+            {t('subtitle', 'Manage commercial credit limits, GST compliance, and reliability scores')}
           </p>
         </div>
 
@@ -160,7 +165,7 @@ export function CustomersPage() {
             className="min-h-[48px] px-3.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-colors"
           >
             <RefreshCw className="w-4 h-4 text-slate-500" />
-            <span>Refresh Accounts</span>
+            <span>{t('common.sync_data', 'Refresh Accounts')}</span>
           </button>
 
           <button
@@ -169,7 +174,7 @@ export function CustomersPage() {
             className="min-h-[48px] px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Customer</span>
+            <span>{t('add_customer', 'Add Customer')}</span>
           </button>
         </div>
       </div>
@@ -187,7 +192,7 @@ export function CustomersPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by customer name, company, GSTIN or city..."
+            placeholder={t('common.search_customers', 'Search customers by name, company, or GSTIN...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full min-h-[48px] pl-10 pr-4 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -200,10 +205,10 @@ export function CustomersPage() {
             onChange={(e) => setGradeFilter(e.target.value)}
             className="min-h-[48px] px-4 rounded-xl border border-slate-200 text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="ALL">All Reliability Grades</option>
-            <option value="A">Grade A (Prompt Payer)</option>
-            <option value="B">Grade B (Moderate Delay)</option>
-            <option value="C">Grade C (High Delay Risk)</option>
+            <option value="ALL">{t('grade', 'Reliability Grade')}</option>
+            <option value="A">{t('grade_a', 'Grade A (Prompt Payers)')}</option>
+            <option value="B">{t('grade_b', 'Grade B (Moderate Delays)')}</option>
+            <option value="C">{t('grade_c', 'Grade C (Chronic Delays)')}</option>
           </select>
         </div>
       </div>
@@ -266,28 +271,28 @@ export function CustomersPage() {
                   {/* Financial Stats Grid */}
                   <div className="grid grid-cols-2 gap-2 p-3 bg-slate-50/80 rounded-xl border border-slate-100 text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Outstanding</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">{t('total_outstanding', 'Current Balance')}</span>
                       <span className="font-mono font-bold text-slate-900 text-sm">
                         {formatIndianCurrency(outstandingPaise)}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Overdue</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">{t('statuses.OVERDUE', 'Overdue')}</span>
                       <span className={`font-mono font-bold text-sm ${overduePaise > 0 ? 'text-rose-600' : 'text-slate-500'}`}>
                         {formatIndianCurrency(overduePaise)}
                       </span>
                     </div>
 
                     <div className="pt-1 border-t border-slate-200/60">
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">Avg Delay</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">{t('average_delay', 'Avg Delay')}</span>
                       <span className="font-mono font-bold text-slate-800">
-                        {stats.averagePaymentDelayDays || 0} days
+                        {stats.averagePaymentDelayDays || 0} {t('days_suffix_plural', 'days')}
                       </span>
                     </div>
 
                     <div className="pt-1 border-t border-slate-200/60">
-                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">On-Time %</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-semibold block">{t('on_time', 'On-time')} %</span>
                       <span className="font-mono font-bold text-emerald-700">
                         {stats.onTimePercentage || 0}%
                       </span>
@@ -296,7 +301,7 @@ export function CustomersPage() {
 
                   {/* Grade Explanation */}
                   <div className="p-2.5 rounded-xl bg-indigo-50/50 border border-indigo-100 text-[11px] text-slate-700 leading-relaxed">
-                    <strong className="text-indigo-950 font-semibold">Reliability Profile:</strong>{' '}
+                    <strong className="text-indigo-950 font-semibold">{t('grade', 'Reliability Grade')}:</strong>{' '}
                     <span>{stats.gradeExplanation || `Grade ${grade} account.`}</span>
                   </div>
                 </div>
@@ -309,7 +314,7 @@ export function CustomersPage() {
                     className="flex-1 min-h-[48px] rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <FileText className="w-4 h-4" />
-                    <span>View Invoices & History</span>
+                    <span>{t('recent_invoices', 'Recent Invoices')}</span>
                   </button>
 
                   <button
@@ -338,7 +343,7 @@ export function CustomersPage() {
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Add New Customer</h2>
+                  <h2 className="text-base font-bold text-slate-900">{t('create_customer_title', 'Add New Customer')}</h2>
                   <p className="text-xs text-slate-500">Create debtor account with GSTIN & credit terms</p>
                 </div>
               </div>
@@ -465,7 +470,7 @@ export function CustomersPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Credit Limit (₹)</label>
+                  <label className="text-xs font-bold text-slate-700">{t('credit_limit', 'Credit Limit (₹)')}</label>
                   <input
                     type="number"
                     min="0"
@@ -475,6 +480,20 @@ export function CustomersPage() {
                     className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
+              </div>
+
+              {/* Preferred Language selector */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">{t('preferred_language', 'Preferred Communication Language')}</label>
+                <select
+                  value={addForm.preferred_language}
+                  onChange={(e) => setAddForm({ ...addForm, preferred_language: e.target.value })}
+                  className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-slate-900 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="en">English (Default)</option>
+                  <option value="hi">हिन्दी (Hindi)</option>
+                  <option value="ta">தமிழ் (Tamil)</option>
+                </select>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">

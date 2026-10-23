@@ -29,6 +29,10 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
     } catch (e) {}
 
     try {
+      db.exec("ALTER TABLE customers ADD COLUMN preferred_language TEXT NOT NULL DEFAULT 'en'");
+    } catch (e) {}
+
+    try {
       db.exec("ALTER TABLE payments ADD COLUMN status TEXT NOT NULL DEFAULT 'confirmed'");
     } catch (e) {}
 

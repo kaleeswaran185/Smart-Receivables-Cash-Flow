@@ -6,12 +6,22 @@ import { formatIndianCurrency, formatDate } from '../utils/money';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import i18n, { useTranslation } from '../utils/i18n';
 
 export function PublicPayPage() {
   const { token } = useParams();
+  const { t, language } = useTranslation('pay');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const handleLanguageChange = (lng) => {
+    i18n.changeLanguage(lng);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('baaki_language', lng);
+      document.documentElement.lang = lng;
+    }
+  };
 
   // Claim modal state ("I've already paid")
   const [showClaimModal, setShowClaimModal] = useState(false);
@@ -37,7 +47,10 @@ export function PublicPayPage() {
       setError(null);
       const res = await api.get(`/public/pay/${token}`);
       setData(res);
-      if (res.status === 'DISPUTED') {
+      if (res?.customer?.preferred_language && !localStorage.getItem('baaki_language')) {
+        handleLanguageChange(res.customer.preferred_language);
+      }
+      if (res?.status === 'DISPUTED') {
         setDisputeSubmitted(true);
       }
     } catch (err) {
@@ -111,7 +124,49 @@ export function PublicPayPage() {
   };
 
   if (loading) return <Loading fullPage message="Securing payment gateway..." />;
-  if (error || !data) return <ErrorState title="Invoice Link Not Found" message={error} />;
+  if (error || !data) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between p-4 sm:p-6 antialiased">
+        <div className="max-w-xl w-full mx-auto my-auto space-y-6">
+          <div className="flex justify-end">
+            <div className="flex items-center rounded-xl border border-slate-700 p-1 bg-slate-800 text-xs font-semibold shadow-sm">
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('en')}
+                className={`min-h-[36px] px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                  language === 'en' ? 'bg-indigo-600 text-white font-extrabold shadow-sm' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('hi')}
+                className={`min-h-[36px] px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                  language === 'hi' ? 'bg-indigo-600 text-white font-extrabold shadow-sm' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                हिन्दी
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLanguageChange('ta')}
+                className={`min-h-[36px] px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                  language === 'ta' ? 'bg-indigo-600 text-white font-extrabold shadow-sm' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                தமிழ்
+              </button>
+            </div>
+          </div>
+          <ErrorState
+            title={t('invalid_title', 'Invoice Link Expired or Invalid')}
+            message={error || t('invalid_desc', 'This payment link cannot be found.')}
+          />
+        </div>
+      </div>
+    );
+  }
 
   const upiId = data.business?.upi_id || 'sharmapackaging@icici';
   const businessName = data.business?.name || 'Sharma Packaging';
@@ -121,15 +176,48 @@ export function PublicPayPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between p-4 sm:p-6 antialiased">
       <div className="max-w-xl w-full mx-auto my-auto space-y-6">
+        {/* Language Switcher (localStorage only) */}
+        <div className="flex justify-end">
+          <div className="flex items-center rounded-xl border border-slate-700 p-1 bg-slate-800 text-xs font-semibold shadow-sm">
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('en')}
+              className={`min-h-[36px] px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                language === 'en' ? 'bg-indigo-600 text-white font-extrabold shadow-sm' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('hi')}
+              className={`min-h-[36px] px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                language === 'hi' ? 'bg-indigo-600 text-white font-extrabold shadow-sm' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              हिन्दी
+            </button>
+            <button
+              type="button"
+              onClick={() => handleLanguageChange('ta')}
+              className={`min-h-[36px] px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                language === 'ta' ? 'bg-indigo-600 text-white font-extrabold shadow-sm' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              தமிழ்
+            </button>
+          </div>
+        </div>
+
         {/* Header Branding */}
         <div className="text-center space-y-1.5">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
             <ShieldCheck className="w-4 h-4" />
-            <span>Verified Merchant Direct Pay</span>
+            <span>{t('pay.title', 'Verified Merchant Direct Pay')}</span>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">{businessName}</h1>
           <p className="text-xs text-slate-400">
-            Billed to: <strong className="text-slate-200">{data.customer?.name}</strong> {data.customer?.company_name ? `(${data.customer.company_name})` : ''}
+            {t('invoices.customer', 'Billed to')}: <strong className="text-slate-200">{data.customer?.name}</strong> {data.customer?.company_name ? `(${data.customer.company_name})` : ''}
           </p>
         </div>
 
@@ -137,16 +225,16 @@ export function PublicPayPage() {
         <div className="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-6 shadow-2xl backdrop-blur-md space-y-6">
           <div className="text-center pb-5 border-b border-slate-700/60">
             <div className="flex items-center justify-between text-xs text-slate-400 font-mono mb-2">
-              <span>Invoice #{data.invoice_number}</span>
-              <span>Dated: {formatDate(data.invoice_date)}</span>
+              <span>{t('invoices.invoice_number', 'Invoice #')}{data.invoice_number}</span>
+              <span>{t('invoices.date', 'Dated')}: {formatDate(data.invoice_date, language)}</span>
             </div>
-            <span className="text-xs text-slate-400 uppercase font-semibold">Amount Outstanding</span>
+            <span className="text-xs text-slate-400 uppercase font-semibold">{t('pay.amount_due', 'Amount Outstanding')}</span>
             <div className="text-4xl font-black font-mono text-emerald-400 mt-1 tracking-tight">
               {formatIndianCurrency(data.balance_paise)}
             </div>
             <div className="mt-3 flex items-center justify-center gap-3">
               <StatusBadge status={data.status} />
-              <span className="text-xs text-slate-400 font-mono">Due: {formatDate(data.due_date)}</span>
+              <span className="text-xs text-slate-400 font-mono">{t('invoices.due_date', 'Due')}: {formatDate(data.due_date, language)}</span>
             </div>
           </div>
 
@@ -154,7 +242,7 @@ export function PublicPayPage() {
           {disputeSubmitted && (
             <div className="p-4 bg-amber-950/60 border border-amber-700/80 rounded-xl text-center space-y-1.5">
               <AlertTriangle className="w-7 h-7 text-amber-400 mx-auto" />
-              <div className="text-sm font-bold text-amber-200">Dispute Under Review</div>
+              <div className="text-sm font-bold text-amber-200">{t('statuses.DISPUTED', 'Dispute Under Review')}</div>
               <div className="text-xs text-amber-300/80 leading-relaxed">
                 You reported an issue with this invoice. Automatic payment reminders are paused while {businessName} verifies and resolves this with you.
               </div>
@@ -197,7 +285,7 @@ export function PublicPayPage() {
                   className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/25"
                 >
                   <QrCode className="w-5 h-5" />
-                  <span>Pay {formatIndianCurrency(data.balance_paise)} via UPI</span>
+                  <span>{t('pay.pay_via_upi', 'Pay via UPI')} ({formatIndianCurrency(data.balance_paise)})</span>
                 </a>
 
                 {/* Secondary Actions: "I've already paid" & "Something is wrong" */}
@@ -209,7 +297,7 @@ export function PublicPayPage() {
                     className="w-full min-h-[48px] px-4 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 active:bg-slate-750 text-slate-200 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>I've Already Paid</span>
+                    <span>{t('pay.already_paid_button', "I've Already Paid")}</span>
                   </button>
 
                   <button
@@ -222,7 +310,7 @@ export function PublicPayPage() {
                     className="w-full min-h-[48px] px-4 py-2.5 rounded-xl bg-rose-950/40 hover:bg-rose-950/60 active:bg-rose-900/80 text-rose-300 border border-rose-800/60 font-semibold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors"
                   >
                     <AlertTriangle className="w-4 h-4 text-rose-400" />
-                    <span>Something is Wrong</span>
+                    <span>{t('pay.dispute_button', 'Something is Wrong')}</span>
                   </button>
                 </div>
               </div>
@@ -316,10 +404,10 @@ export function PublicPayPage() {
             <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
               <div className="flex items-center gap-2 text-emerald-400">
                 <CheckCircle2 className="w-5 h-5" />
-                <h3 className="text-base font-bold text-white">Record Payment Notification</h3>
+                <h3 className="text-base font-bold text-white">{t('pay.claim_title', 'Report Payment Already Made')}</h3>
               </div>
               <p className="text-xs text-slate-300">
-                Provide reference details so our finance team can verify and credit your account:
+                {t('pay.claim_desc', 'Please provide your bank UTR or payment reference so our accounting team can verify and credit your account.')}
               </p>
               <form onSubmit={handleAlreadyPaid} className="space-y-3">
                 <div className="space-y-1">
@@ -337,7 +425,7 @@ export function PublicPayPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-300 uppercase">Transaction ID / UTR / Reference</label>
+                  <label className="text-[11px] font-bold text-slate-300 uppercase">{t('pay.claim_ref_label', 'Payment Reference / UTR Number')}</label>
                   <input
                     type="text"
                     required
@@ -349,7 +437,7 @@ export function PublicPayPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-300 uppercase">Notes (Optional)</label>
+                  <label className="text-[11px] font-bold text-slate-300 uppercase">{t('pay.claim_notes_label', 'Additional Notes (Optional)')}</label>
                   <textarea
                     value={claimNotes}
                     onChange={(e) => setClaimNotes(e.target.value)}
@@ -362,16 +450,16 @@ export function PublicPayPage() {
                   <button
                     type="button"
                     onClick={() => setShowClaimModal(false)}
-                    className="flex-1 min-h-[48px] rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs"
+                    className="flex-1 min-h-[48px] rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs cursor-pointer"
                   >
-                    Cancel
+                    {t('common.cancel', 'Cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={submittingClaim}
-                    className="flex-1 min-h-[48px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs shadow-md"
+                    className="flex-1 min-h-[48px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer"
                   >
-                    {submittingClaim ? 'Submitting...' : 'Submit Claim'}
+                    {submittingClaim ? t('common.saving', 'Submitting...') : t('pay.submit_claim', 'Submit Payment Proof')}
                   </button>
                 </div>
               </form>
@@ -385,14 +473,14 @@ export function PublicPayPage() {
             <div className="bg-slate-800 border border-slate-700 rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
               <div className="flex items-center gap-2 text-rose-400">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-base font-bold text-white">Report an Issue with Invoice</h3>
+                <h3 className="text-base font-bold text-white">{t('pay.dispute_title', 'Raise an Invoice Dispute')}</h3>
               </div>
               <p className="text-xs text-slate-300">
-                Found a discrepancy in goods or rates? Submitting this automatically pauses reminder notices until it is resolved.
+                {t('pay.dispute_desc', 'State the issue with this invoice. Reminders will be paused immediately while our team reviews it.')}
               </p>
               <form onSubmit={handleDisputeSubmit} className="space-y-3">
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-300 uppercase">Reason for Issue / Dispute *</label>
+                  <label className="text-[11px] font-bold text-slate-300 uppercase">{t('pay.dispute_reason_label', 'Dispute Reason / Details')} *</label>
                   <textarea
                     required
                     value={disputeReason}
@@ -403,7 +491,7 @@ export function PublicPayPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[11px] font-bold text-slate-300 uppercase">Disputed Amount (₹)</label>
+                  <label className="text-[11px] font-bold text-slate-300 uppercase">{t('common.amount', 'Disputed Amount')} (₹)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -419,16 +507,16 @@ export function PublicPayPage() {
                   <button
                     type="button"
                     onClick={() => setShowDisputeModal(false)}
-                    className="flex-1 min-h-[48px] rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs"
+                    className="flex-1 min-h-[48px] rounded-xl bg-slate-700 hover:bg-slate-600 text-white font-semibold text-xs cursor-pointer"
                   >
-                    Cancel
+                    {t('common.cancel', 'Cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={submittingDispute}
-                    className="flex-1 min-h-[48px] rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-bold text-xs shadow-md"
+                    className="flex-1 min-h-[48px] rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-bold text-xs shadow-md cursor-pointer"
                   >
-                    {submittingDispute ? 'Submitting...' : 'Submit & Pause'}
+                    {submittingDispute ? t('common.saving', 'Submitting...') : t('pay.submit_dispute', 'Submit Dispute & Pause Reminders')}
                   </button>
                 </div>
               </form>

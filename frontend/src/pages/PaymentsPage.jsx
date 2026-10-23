@@ -24,7 +24,7 @@ import { BankImportModal } from '../components/common/BankImportModal';
 import { useTranslation } from '../utils/i18n';
 
 export function PaymentsPage() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation('payments');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -287,20 +287,20 @@ export function PaymentsPage() {
             <table className="w-full text-left border-collapse text-xs sm:text-sm">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase text-[11px] tracking-wider">
-                  <th className="p-3 sm:p-4">Receipt Date</th>
-                  <th className="p-3 sm:p-4">Invoice #</th>
-                  <th className="p-3 sm:p-4">Customer</th>
-                  <th className="p-3 sm:p-4">Payment Mode</th>
-                  <th className="p-3 sm:p-4">Reference / UTR</th>
-                  <th className="p-3 sm:p-4 text-right">Amount Received</th>
-                  <th className="p-3 sm:p-4">Status</th>
+                  <th className="p-3 sm:p-4">{t('payment_date', 'Settlement Date')}</th>
+                  <th className="p-3 sm:p-4">{t('invoices.invoice_number', 'Invoice #')}</th>
+                  <th className="p-3 sm:p-4">{t('customers.customer_name', 'Customer')}</th>
+                  <th className="p-3 sm:p-4">{t('payment_mode', 'Payment Mode')}</th>
+                  <th className="p-3 sm:p-4">{t('reference_no', 'Reference / UTR')}</th>
+                  <th className="p-3 sm:p-4 text-right">{t('amount', 'Amount (₹)')}</th>
+                  <th className="p-3 sm:p-4">{t('common.status', 'Status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredPayments.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="p-3 sm:p-4 font-mono text-slate-600">
-                      {formatDate(p.payment_date)}
+                      {formatDate(p.payment_date, language)}
                     </td>
                     <td className="p-3 sm:p-4 font-mono font-bold text-slate-900">
                       <button

@@ -24,9 +24,11 @@ import { formatIndianCurrency, formatDate } from '../utils/money';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Loading } from '../components/common/Loading';
 import { ErrorState } from '../components/common/ErrorState';
+import { useTranslation } from '../utils/i18n';
 
 export function InboxPage() {
   const navigate = useNavigate();
+  const { t, language } = useTranslation('inbox');
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -170,11 +172,11 @@ export function InboxPage() {
               <Inbox className="w-5 h-5" />
             </span>
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-              Action Inbox & Customer Responses
+              {t('title', 'Merchant Inbox & Action Center')}
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Audit customer payment claims, manage billing disputes, and track promised payment dates
+            {t('subtitle', 'Review customer payment claims, dispute notices, and automated reminder tasks')}
           </p>
         </div>
 
@@ -184,7 +186,7 @@ export function InboxPage() {
           className="min-h-[48px] px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-medium text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-colors self-start sm:self-auto"
         >
           <RefreshCw className="w-4 h-4 text-slate-500" />
-          <span>Refresh Inbox</span>
+          <span>{t('common.sync_data', 'Refresh')}</span>
         </button>
       </div>
 
@@ -223,7 +225,7 @@ export function InboxPage() {
               : 'bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-50'
           }`}
         >
-          <span>All Pending</span>
+          <span>{t('all_tab', 'All Items')}</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'all' ? 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900' : 'bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600'}`}>
             {summary.total_pending}
           </span>
@@ -239,7 +241,7 @@ export function InboxPage() {
           }`}
         >
           <CreditCard className="w-4 h-4" />
-          <span>Payment Claims</span>
+          <span>{t('claims_tab', 'Payment Claims')}</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'claims' ? 'bg-emerald-900 dark:bg-emerald-700 text-white' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-950 dark:text-emerald-100 border border-emerald-400 dark:border-emerald-700'}`}>
             {summary.payment_claims_count}
           </span>
@@ -255,7 +257,7 @@ export function InboxPage() {
           }`}
         >
           <AlertTriangle className="w-4 h-4" />
-          <span>Open Disputes</span>
+          <span>{t('disputes_tab', 'Disputes')}</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'disputes' ? 'bg-rose-900 dark:bg-rose-700 text-white' : 'bg-rose-100 dark:bg-rose-950 text-rose-950 dark:text-rose-100 border border-rose-400 dark:border-rose-700'}`}>
             {summary.disputes_count}
           </span>
@@ -271,7 +273,7 @@ export function InboxPage() {
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>Payment Promises</span>
+          <span>{t('promises_tab', 'Promises to Pay')}</span>
           <span className={`px-2 py-0.5 rounded-full text-xs font-mono font-bold ${activeTab === 'promises' ? 'bg-indigo-900 dark:bg-indigo-700 text-white' : 'bg-indigo-100 dark:bg-indigo-950 text-indigo-950 dark:text-indigo-100 border border-indigo-400 dark:border-indigo-700'}`}>
             {summary.promises_count}
           </span>

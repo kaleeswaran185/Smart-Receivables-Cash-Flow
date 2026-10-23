@@ -50,6 +50,23 @@ export function AppLayout() {
     { name: t('more', 'More'), path: '/settings', icon: Settings, isMenu: true }
   ];
 
+  const pageTitles = {
+    '/dashboard': t('dashboard.title', 'Overview Dashboard'),
+    '/invoices': t('invoices.title', 'Invoices Ledger'),
+    '/invoices/new': t('invoices.create_invoice_title', 'Create Tax Invoice'),
+    '/customers': t('customers.title', 'Customers Directory'),
+    '/payments': t('payments.title', 'Payments & Settlements'),
+    '/followups': t('followups.title', 'Smart Follow-up Queue'),
+    '/inbox': t('inbox.title', 'Inbox & Customer Actions'),
+    '/forecast': t('forecast.title', '13-Week Cash Flow Forecast'),
+    '/settings': t('settings.title', 'Business Settings & Demo Simulator')
+  };
+
+  const currentTitle = pageTitles[location.pathname] || (
+    location.pathname.startsWith('/invoices/') ? t('invoices.invoice_detail', 'Invoice Details') :
+    location.pathname.replace('/', '').replace(/-/g, ' ')
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col md:flex-row antialiased overflow-x-hidden">
       {/* Desktop Sidebar (>= 768px) */}
@@ -62,7 +79,7 @@ export function AppLayout() {
             </div>
             <div>
               <div className="font-extrabold text-white text-lg tracking-tight">Baaki</div>
-              <div className="text-[11px] text-slate-400 font-medium leading-none">Smart Cash Flow Assistant</div>
+              <div className="text-[11px] text-slate-400 font-medium leading-none">{t('app_tagline', 'Smart Cash Flow Assistant')}</div>
             </div>
           </div>
         </div>
@@ -78,7 +95,7 @@ export function AppLayout() {
           </div>
           <div className="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between text-[11px]">
             <span className="text-slate-400 flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-indigo-400" /> Demo Date:
+              <Calendar className="w-3 h-3 text-indigo-400" /> {t('simulated_date', 'Demo Date')}:
             </span>
             <NavLink
               to="/settings"
@@ -98,7 +115,7 @@ export function AppLayout() {
             className="w-full min-h-[48px] px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-semibold text-sm flex items-center justify-center gap-2 transition-all shadow-md shadow-emerald-600/20"
           >
             <Plus className="w-5 h-5" />
-            <span>Create Invoice</span>
+            <span>{t('create_invoice', 'Create Invoice')}</span>
           </button>
         </div>
 
@@ -133,10 +150,10 @@ export function AppLayout() {
           })}
         </nav>
 
-        {/* Safety buffer note & Sign Out */}
+        {/* Safety buffer note */}
         <div className="p-4 border-t border-slate-800 text-xs text-slate-400 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-slate-400">Safety Buffer</span>
+            <span className="text-slate-400">{t('safety_buffer', 'Safety Buffer')}</span>
             <span className="font-semibold text-white">₹5,00,000</span>
           </div>
         </div>
@@ -145,45 +162,46 @@ export function AppLayout() {
       {/* Main Content Layout */}
       <div className="flex-1 flex flex-col md:pl-64 min-w-0 max-w-full">
         {/* Mobile Top Header (< 768px) */}
-        <header className="md:hidden bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-20 px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center text-white font-black text-lg flex-shrink-0">
+        <header className="md:hidden bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-20 px-3 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center text-white font-black text-base flex-shrink-0">
               ₹
             </div>
             <div className="truncate">
-              <h1 className="font-bold text-white text-base leading-tight truncate">
+              <h1 className="font-bold text-white text-sm leading-tight truncate">
                 {business?.name || 'Sharma Packaging'}
               </h1>
-              <NavLink to="/settings" className="text-[11px] text-emerald-400 font-mono hover:underline">
+              <NavLink to="/settings" className="text-[10px] text-emerald-400 font-mono hover:underline">
                 Demo: {demoDate}
               </NavLink>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="min-h-[44px] px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700"
-              title="Switch Language / भाषा बदलें"
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <select
+              aria-label="Select Language / भाषा चुनें / மொழியைத் தேர்ந்தெடுக்கவும்"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="min-h-[44px] px-2 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-200 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
             >
-              {language === 'hi' ? 'EN' : 'हिन्दी'}
-            </button>
+              <option value="en">English</option>
+              <option value="hi">हिन्दी</option>
+              <option value="ta">தமிழ்</option>
+            </select>
 
             <button
               type="button"
               onClick={() => navigate('/invoices/new')}
-              className="min-h-[48px] min-w-[48px] px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1 shadow-sm"
+              className="min-h-[44px] min-w-[44px] px-2.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1 shadow-sm"
               aria-label="New Invoice"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New</span>
             </button>
 
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="min-h-[48px] min-w-[48px] rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 active:bg-slate-800 flex items-center justify-center"
+              className="min-h-[44px] min-w-[44px] rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 active:bg-slate-800 flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -194,8 +212,35 @@ export function AppLayout() {
         {/* Mobile Fullscreen Slideout Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-md pt-20 pb-28 px-4 flex flex-col justify-between overflow-y-auto">
-            <div className="space-y-1">
-              <div className="text-xs font-semibold uppercase text-slate-400 px-3 py-2">Navigation</div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-xs font-semibold uppercase text-slate-400">{t('select_language', 'Language')}</span>
+                <div className="flex items-center rounded-lg border border-slate-700 p-0.5 bg-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('en')}
+                    className={`px-3 py-1.5 rounded-md font-semibold transition-colors ${language === 'en' ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}
+                  >
+                    English
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('hi')}
+                    className={`px-3 py-1.5 rounded-md font-semibold transition-colors ${language === 'hi' ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}
+                  >
+                    हिन्दी
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('ta')}
+                    className={`px-3 py-1.5 rounded-md font-semibold transition-colors ${language === 'ta' ? 'bg-indigo-600 text-white' : 'text-slate-300'}`}
+                  >
+                    தமிழ்
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-xs font-semibold uppercase text-slate-400 px-3 py-1">Navigation</div>
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -233,26 +278,55 @@ export function AppLayout() {
         {/* Desktop Top Header Bar (Breadcrumb & Meta) */}
         <div className="hidden md:flex items-center justify-between px-8 py-4 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 sticky top-0 z-20">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 capitalize">
-              {location.pathname === '/dashboard' ? 'Overview Dashboard' : location.pathname.replace('/', '').replace(/-/g, ' ')}
+            <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+              {currentTitle}
             </h2>
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="min-h-[44px] px-3.5 py-1.5 rounded-full text-xs font-bold border transition-colors flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-600"
-              title="Switch Language / भाषा बदलें"
-            >
-              <span className={language === 'en' ? 'text-indigo-700 dark:text-indigo-300 font-extrabold' : 'text-slate-700 dark:text-slate-300 font-semibold'}>EN</span>
-              <span className="text-slate-400 dark:text-slate-500">|</span>
-              <span className={language === 'hi' ? 'text-indigo-700 dark:text-indigo-300 font-extrabold' : 'text-slate-700 dark:text-slate-300 font-semibold'}>हिन्दी</span>
-            </button>
+            {/* Trilingual Switcher (English | हिन्दी | தமிழ்) */}
+            <div className="flex items-center rounded-xl border border-slate-300 dark:border-slate-700 p-1 bg-slate-100 dark:bg-slate-800 text-xs font-semibold shadow-sm">
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  language === 'en'
+                    ? 'bg-indigo-600 text-white font-extrabold shadow-sm'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="Switch to English"
+              >
+                English
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('hi')}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  language === 'hi'
+                    ? 'bg-indigo-600 text-white font-extrabold shadow-sm'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="हिन्दी में बदलें"
+              >
+                हिन्दी
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('ta')}
+                className={`min-h-[38px] px-3.5 py-1.5 rounded-lg transition-colors cursor-pointer ${
+                  language === 'ta'
+                    ? 'bg-indigo-600 text-white font-extrabold shadow-sm'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
+                }`}
+                title="தமிழுக்கு மாறவும்"
+              >
+                தமிழ்
+              </button>
+            </div>
 
-            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700">
               <Calendar className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400" />
-              <span>Simulated Date: <strong className="text-slate-950 dark:text-white font-mono">{demoDate}</strong></span>
+              <span>{t('simulated_date', 'Simulated Date')}: <strong className="text-slate-950 dark:text-white font-mono">{demoDate}</strong></span>
             </div>
 
             <button
