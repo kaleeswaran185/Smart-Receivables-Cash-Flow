@@ -33,6 +33,9 @@ export function InboxPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'claims', 'disputes', 'promises'
   const [actionSuccess, setActionSuccess] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [processingClaimId, setProcessingClaimId] = useState(null);
+  const [processingPromiseId, setProcessingPromiseId] = useState(null);
 
   // Resolve Dispute Modal
   const [resolveModal, setResolveModal] = useState(null);
@@ -57,13 +60,18 @@ export function InboxPage() {
   }, []);
 
   const handleAcceptClaim = async (claim) => {
+    setProcessingClaimId(claim.id);
+    setActionError(null);
+    setActionSuccess(null);
     try {
-      await api.post(`/inbox/claims/${claim.id}/accept`);
-      setActionSuccess(`Claim accepted! Payment recorded & Invoice ${claim.invoice_number} updated.`);
-      setTimeout(() => setActionSuccess(null), 3500);
-      loadInbox();
+      const res = await api.post(`/inbox/claims/${claim.id}/accept`);
+      setActionSuccess(res?.message || `Claim accepted! Payment recorded & Invoice ${claim.invoice_number} updated.`);
+      setTimeout(() => setActionSuccess(null), 4000);
+      await loadInbox();
     } catch (err) {
-      alert('Failed to accept claim: ' + err.message);
+      setActionError(err.message || 'Failed to accept claim');
+    } finally {
+      setProcessingClaimId(null);
     }
   };
 
@@ -112,13 +120,18 @@ export function InboxPage() {
   };
 
   const handleFulfillPromise = async (promise) => {
+    setProcessingPromiseId(promise.promise_id);
+    setActionError(null);
+    setActionSuccess(null);
     try {
-      await api.post(`/inbox/promises/${promise.promise_id}/fulfill`);
-      setActionSuccess(`Payment recorded and Promise fulfilled for Invoice ${promise.invoice_number}.`);
-      setTimeout(() => setActionSuccess(null), 3500);
-      loadInbox();
+      const res = await api.post(`/inbox/promises/${promise.promise_id}/fulfill`);
+      setActionSuccess(res?.message || `Payment recorded and Promise fulfilled for Invoice ${promise.invoice_number}.`);
+      setTimeout(() => setActionSuccess(null), 4000);
+      await loadInbox();
     } catch (err) {
-      alert('Failed to fulfill promise: ' + err.message);
+      setActionError(err.message || 'Failed to fulfill promise');
+    } finally {
+      setProcessingPromiseId(null);
     }
   };
 
@@ -176,9 +189,26 @@ export function InboxPage() {
       </div>
 
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs sm:text-sm flex items-center gap-2 shadow-sm animate-fade-in">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-          <span>{actionSuccess}</span>
+        <div role="status" className="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs sm:text-sm flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+            <span className="font-semibold">{actionSuccess}</span>
+          </div>
+          <button type="button" onClick={() => setActionSuccess(null)} className="p-1 text-emerald-700 hover:text-emerald-950">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {actionError && (
+        <div role="alert" className="p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs sm:text-sm flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+            <span className="font-semibold">{actionError}</span>
+          </div>
+          <button type="button" onClick={() => setActionError(null)} className="p-1 text-rose-700 hover:text-rose-950">
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -346,11 +376,26 @@ export function InboxPage() {
 
                         <button
                           type="button"
+                          aria-label="Mark as paid"
+                          disabled={processingClaimId === claim.id}
                           onClick={() => handleAcceptClaim(claim)}
-                          className="min-h-[48px] px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm"
+                          className={`min-h-[48px] px-5 py-2 rounded-xl text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm ${
+                            processingClaimId === claim.id
+                              ? 'bg-emerald-800/70 cursor-not-allowed opacity-80'
+                              : 'bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 cursor-pointer'
+                          }`}
                         >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Accept & Mark Paid</span>
+                          {processingClaimId === claim.id ? (
+                            <>
+                              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                              <span>Marking as Paid...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Mark as Paid</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -543,11 +588,26 @@ export function InboxPage() {
 
                         <button
                           type="button"
+                          aria-label="Mark as paid"
+                          disabled={processingPromiseId === promise.promise_id}
                           onClick={() => handleFulfillPromise(promise)}
-                          className="min-h-[48px] px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm"
+                          className={`min-h-[48px] px-5 py-2 rounded-xl text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm ${
+                            processingPromiseId === promise.promise_id
+                              ? 'bg-indigo-800/70 cursor-not-allowed opacity-80'
+                              : 'bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 cursor-pointer'
+                          }`}
                         >
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>Mark as Paid</span>
+                          {processingPromiseId === promise.promise_id ? (
+                            <>
+                              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                              <span>Marking as Paid...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Mark as Paid</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>
