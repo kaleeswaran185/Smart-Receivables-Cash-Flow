@@ -6,7 +6,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULT_DB_PATH = process.env.DATABASE_PATH || path.resolve(__dirname, '../baaki.db');
+const DEFAULT_DB_PATH = process.env.DB_PATH || process.env.DATABASE_PATH || path.resolve(__dirname, '../baaki.db');
 const SCHEMA_PATH = path.resolve(__dirname, '../schema.sql');
 
 export function createDatabase(dbPath = DEFAULT_DB_PATH) {
@@ -26,9 +26,23 @@ export function createDatabase(dbPath = DEFAULT_DB_PATH) {
     // Backward compatibility for existing DBs
     try {
       db.exec('ALTER TABLE business ADD COLUMN turnover_paise INTEGER DEFAULT 6500000000');
-    } catch (e) {
-      // Column already exists, ignore
-    }
+    } catch (e) {}
+
+    try {
+      db.exec("ALTER TABLE payments ADD COLUMN status TEXT NOT NULL DEFAULT 'confirmed'");
+    } catch (e) {}
+
+    try {
+      db.exec('ALTER TABLE payments ADD COLUMN is_overpayment INTEGER DEFAULT 0');
+    } catch (e) {}
+
+    try {
+      db.exec('ALTER TABLE payments ADD COLUMN overpayment_paise INTEGER DEFAULT 0');
+    } catch (e) {}
+
+    try {
+      db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_reminders_invoice_stage ON reminders(invoice_id, stage)');
+    } catch (e) {}
   } else {
     throw new Error(`Schema file not found at ${SCHEMA_PATH}`);
   }

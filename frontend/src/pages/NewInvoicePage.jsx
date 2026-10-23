@@ -174,6 +174,15 @@ export function NewInvoicePage() {
       return;
     }
 
+    for (const item of items) {
+      if (item.hsn_code && item.hsn_code.trim()) {
+        if (!/^[0-9]{4,8}$/.test(item.hsn_code.trim())) {
+          setError('HSN/SAC code must be 4 to 8 digits.');
+          return;
+        }
+      }
+    }
+
     try {
       setSubmitting(true);
       const payload = {

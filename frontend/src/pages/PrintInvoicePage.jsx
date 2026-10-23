@@ -126,16 +126,16 @@ export function PrintInvoicePage() {
             </div>
           </div>
 
+          {regType === 'COMPOSITION' && (
+            <div className="mt-3 p-2.5 rounded-lg bg-slate-100 border border-slate-300 text-xs font-semibold text-slate-800">
+              Composition taxable person, not eligible to collect tax on supplies
+            </div>
+          )}
+
           {/* E-Invoicing Informational Note (Mandated when turnover > ₹5 Crore, no IRN claims) */}
           {isTurnoverOver5Cr && (
-            <div className="mt-4 p-3 rounded-lg bg-amber-50/70 border border-amber-200/90 text-[11px] text-amber-900 space-y-0.5">
-              <div className="font-bold flex items-center gap-1.5 text-amber-950">
-                <span>E-Invoicing Informational Note (Turnover &gt; ₹5 Crore):</span>
-              </div>
-              <p className="leading-relaxed">
-                As the aggregate annual turnover of the supplier exceeds ₹5 Crore, e-invoicing provisions under Rule 48(4) of the CGST Rules, 2017 are applicable.
-                This is a direct system document copy generated for verification and accounting records. <em>No Invoice Reference Number (IRN) or digital signed QR code is claimed on this system-generated copy.</em>
-              </p>
+            <div className="mt-4 p-3 rounded-lg bg-amber-50/70 border border-amber-200/90 text-xs text-amber-900 font-medium">
+              e-invoicing may apply; this app does not generate IRNs.
             </div>
           )}
         </div>

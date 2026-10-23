@@ -156,13 +156,13 @@ export function amountInWords(paise) {
     return 'Rupees Zero Only';
   }
 
-  let result = (isNegative ? 'Minus ' : '') + 'Rupees ';
-
-  if (rupees > 0) {
-    result += integerRupeesToWords(rupees);
-  } else {
-    result += 'Zero';
+  if (rupees === 0 && remainingPaise > 0) {
+    const paiseWords = convertBelowThousand(remainingPaise);
+    return `${isNegative ? 'Minus ' : ''}${paiseWords} ${remainingPaise === 1 ? 'Paisa' : 'Paise'} Only`;
   }
+
+  let result = (isNegative ? 'Minus ' : '') + 'Rupees ';
+  result += integerRupeesToWords(rupees);
 
   if (remainingPaise > 0) {
     const paiseWords = convertBelowThousand(remainingPaise);

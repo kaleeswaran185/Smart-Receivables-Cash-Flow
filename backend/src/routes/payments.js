@@ -23,7 +23,7 @@ router.get('/', (req, res) => {
         i.status as invoice_status,
         c.name as customer_name
       FROM payments p
-      JOIN invoices i ON p.invoice_id = i.id
+      LEFT JOIN invoices i ON p.invoice_id = i.id
       JOIN customers c ON p.customer_id = c.id
       WHERE 1=1
     `;
@@ -82,18 +82,26 @@ router.post('/', (req, res) => {
 
     const {
       invoice_id,
+      customer_id,
       amount_paise,
       amount_rupees,
       payment_date = demoDate,
       payment_mode = 'UPI',
       reference_no,
       notes,
+      status: reqStatus = 'confirmed',
       confirm = false,
-      confirmPaid = false
+      confirmPaid = false,
+      allowOverpayment = false,
+      recordCredit = false
     } = req.body;
 
-    if (!invoice_id) {
-      return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'invoice_id is required' });
+    const paymentStatus = reqStatus.toLowerCase();
+    if (!['pending', 'confirmed', 'rejected'].includes(paymentStatus)) {
+      return res.status(400).json({
+        error: 'INVALID_STATUS',
+        message: "Payment status must be 'pending', 'confirmed', or 'rejected'"
+      });
     }
 
     let parsedAmountPaise = 0;
@@ -118,6 +126,43 @@ router.post('/', (req, res) => {
       });
     }
 
+    // Case 1: Unmatched Payment (no invoice_id, customer_id provided)
+    if (!invoice_id) {
+      if (!customer_id) {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'invoice_id or customer_id is required' });
+      }
+      const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(customer_id);
+      if (!customer) {
+        return res.status(404).json({ error: 'CUSTOMER_NOT_FOUND', message: 'Customer does not exist' });
+      }
+
+      const payStmt = db.prepare(`
+        INSERT INTO payments (
+          business_id, customer_id, invoice_id, payment_date, amount_paise, payment_mode, reference_no, notes, status
+        ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)
+      `);
+      const payRes = payStmt.run(
+        customer.business_id,
+        customer.id,
+        payment_date,
+        parsedAmountPaise,
+        mode,
+        reference_no ? reference_no.trim() : null,
+        notes ? notes.trim() : null,
+        paymentStatus
+      );
+
+      const createdPayment = db.prepare('SELECT * FROM payments WHERE id = ?').get(payRes.lastInsertRowid);
+      return res.status(201).json({
+        payment: {
+          ...createdPayment,
+          formatted_amount: formatIndianCurrency(createdPayment.amount_paise)
+        },
+        message: 'Unmatched payment recorded and kept unlinked'
+      });
+    }
+
+    // Case 2: Invoice-linked Payment
     const invoice = db.prepare('SELECT * FROM invoices WHERE id = ?').get(invoice_id);
     if (!invoice) {
       return res.status(404).json({ error: 'INVOICE_NOT_FOUND', message: 'Invoice does not exist' });
@@ -131,21 +176,29 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'INVOICE_CANCELLED', message: 'Cannot record payment on a cancelled invoice' });
     }
 
-    // Rule: Overpayment is flagged
+    // Rule: Overpayment is flagged & recorded as customer credit (never auto-applied)
+    let isOverpayment = false;
+    let overpaymentPaise = 0;
     if (parsedAmountPaise > invoice.balance_paise) {
-      return res.status(400).json({
-        error: 'OVERPAYMENT_FLAGGED',
-        message: `Payment amount (${formatIndianCurrency(parsedAmountPaise)}) exceeds the invoice outstanding balance (${formatIndianCurrency(invoice.balance_paise)}). Overpayment is not permitted.`,
-        invoiceBalancePaise: invoice.balance_paise,
-        paymentAmountPaise: parsedAmountPaise
-      });
+      if (allowOverpayment || recordCredit) {
+        isOverpayment = true;
+        overpaymentPaise = parsedAmountPaise - invoice.balance_paise;
+      } else {
+        return res.status(400).json({
+          error: 'OVERPAYMENT_FLAGGED',
+          message: `Payment amount (${formatIndianCurrency(parsedAmountPaise)}) exceeds the invoice outstanding balance (${formatIndianCurrency(invoice.balance_paise)}). Overpayment is recorded as customer credit only upon confirmation.`,
+          invoiceBalancePaise: invoice.balance_paise,
+          paymentAmountPaise: parsedAmountPaise,
+          overpaymentPaise: parsedAmountPaise - invoice.balance_paise
+        });
+      }
     }
 
-    const isFullSettlement = (parsedAmountPaise === invoice.balance_paise);
+    const isFullSettlement = (parsedAmountPaise >= invoice.balance_paise);
     const isExplicitlyConfirmed = (confirm === true || confirmPaid === true);
 
     // Rule: A payment must never auto-mark an invoice paid without an explicit confirm step
-    if (isFullSettlement && !isExplicitlyConfirmed) {
+    if (isFullSettlement && !isExplicitlyConfirmed && !isOverpayment) {
       return res.status(400).json({
         requiresConfirmation: true,
         code: 'CONFIRM_PAID_REQUIRED',
@@ -158,20 +211,23 @@ router.post('/', (req, res) => {
       });
     }
 
-    // Determine target status
+    // Only confirmed payments reduce outstanding balance
+    const appliedToInvoicePaise = isOverpayment ? invoice.balance_paise : parsedAmountPaise;
+    const shouldReduceBalance = (paymentStatus === 'confirmed');
+
     let newStatus = 'PARTIALLY_PAID';
     if (isFullSettlement && isExplicitlyConfirmed) {
       newStatus = 'PAID';
     }
 
-    const newPaidPaise = invoice.paid_paise + parsedAmountPaise;
-    const newBalancePaise = invoice.balance_paise - parsedAmountPaise;
+    const newPaidPaise = shouldReduceBalance ? (invoice.paid_paise + appliedToInvoicePaise) : invoice.paid_paise;
+    const newBalancePaise = shouldReduceBalance ? (invoice.balance_paise - appliedToInvoicePaise) : invoice.balance_paise;
 
     const recordTx = db.transaction(() => {
       const payStmt = db.prepare(`
         INSERT INTO payments (
-          business_id, customer_id, invoice_id, payment_date, amount_paise, payment_mode, reference_no, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          business_id, customer_id, invoice_id, payment_date, amount_paise, payment_mode, reference_no, notes, status, is_overpayment, overpayment_paise
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       const payRes = payStmt.run(
@@ -182,14 +238,32 @@ router.post('/', (req, res) => {
         parsedAmountPaise,
         mode,
         reference_no ? reference_no.trim() : null,
-        notes ? notes.trim() : null
+        notes ? notes.trim() : null,
+        paymentStatus,
+        isOverpayment ? 1 : 0,
+        overpaymentPaise
       );
 
-      db.prepare(`
-        UPDATE invoices
-        SET paid_paise = ?, balance_paise = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).run(newPaidPaise, newBalancePaise, newStatus, invoice.id);
+      // Record credit if overpayment occurred and payment is confirmed
+      if (isOverpayment && shouldReduceBalance) {
+        db.prepare(`
+          INSERT INTO customer_credits (customer_id, payment_id, amount_paise, notes)
+          VALUES (?, ?, ?, ?)
+        `).run(
+          invoice.customer_id,
+          payRes.lastInsertRowid,
+          overpaymentPaise,
+          `Overpayment credit from invoice ${invoice.invoice_number}`
+        );
+      }
+
+      if (shouldReduceBalance) {
+        db.prepare(`
+          UPDATE invoices
+          SET paid_paise = ?, balance_paise = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).run(newPaidPaise, newBalancePaise, newStatus, invoice.id);
+      }
 
       return payRes.lastInsertRowid;
     });

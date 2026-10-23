@@ -1,9 +1,10 @@
+import crypto from 'crypto';
 import express from 'express';
 import { getDatabase } from '../db.js';
 import { calculateInvoice } from '../lib/gst.js';
 import { formatIndianCurrency, rupeesToPaise } from '../lib/money.js';
 import { getToday, addDays } from '../lib/dateUtils.js';
-import { syncInvoiceStatuses } from '../lib/statusSync.js';
+import { deriveInvoiceStatus, syncInvoiceStatuses } from '../lib/statusSync.js';
 
 const router = express.Router();
 
@@ -25,6 +26,9 @@ router.get('/', (req, res) => {
       search
     } = req.query;
 
+    const dueSoonRow = db.prepare("SELECT value FROM settings WHERE key = 'due_soon_days'").get();
+    const dueSoonDays = dueSoonRow ? parseInt(dueSoonRow.value, 10) : 7;
+
     let query = `
       SELECT
         i.*,
@@ -32,7 +36,9 @@ router.get('/', (req, res) => {
         c.company_name as customer_company,
         c.gstin as customer_gstin,
         c.state as customer_state,
-        c.phone as customer_phone
+        c.phone as customer_phone,
+        (SELECT IFNULL(SUM(amount_paise), 0) FROM payments WHERE invoice_id = i.id AND status = 'confirmed') as confirmed_paid_paise,
+        (SELECT COUNT(*) FROM disputes WHERE invoice_id = i.id AND status = 'OPEN') as open_dispute_count
       FROM invoices i
       JOIN customers c ON i.customer_id = c.id
       WHERE 1=1
@@ -55,41 +61,6 @@ router.get('/', (req, res) => {
       params.push(to_date);
     }
 
-    if (status) {
-      const lowerStatus = status.toLowerCase();
-      if (lowerStatus === 'due_soon') {
-        // Due within 7 days from demoDate, unpaid
-        query += `
-          AND (
-            LOWER(i.status) = 'due_soon'
-            OR (
-              i.due_date >= ?
-              AND i.due_date <= date(?, '+7 day')
-              AND i.balance_paise > 0
-              AND i.status NOT IN ('PAID', 'CANCELLED', 'DRAFT')
-            )
-          )
-        `;
-        params.push(demoDate, demoDate);
-      } else if (lowerStatus === 'overdue') {
-        // Due date past demoDate, unpaid
-        query += `
-          AND (
-            LOWER(i.status) = 'overdue'
-            OR (
-              i.due_date < ?
-              AND i.balance_paise > 0
-              AND i.status NOT IN ('PAID', 'CANCELLED', 'DRAFT')
-            )
-          )
-        `;
-        params.push(demoDate);
-      } else {
-        query += ' AND LOWER(i.status) = LOWER(?)';
-        params.push(status);
-      }
-    }
-
     if (search && search.trim()) {
       query += ' AND (i.invoice_number LIKE ? OR c.name LIKE ? OR c.company_name LIKE ?)';
       const term = `%${search.trim()}%`;
@@ -100,14 +71,35 @@ router.get('/', (req, res) => {
 
     const invoices = db.prepare(query).all(...params);
 
-    const formatted = invoices.map(inv => ({
-      ...inv,
-      formatted_total: formatIndianCurrency(inv.total_paise),
-      formatted_balance: formatIndianCurrency(inv.balance_paise),
-      formatted_paid: formatIndianCurrency(inv.paid_paise)
-    }));
+    let processed = invoices.map(inv => {
+      const confirmedPaid = Number(inv.confirmed_paid_paise || 0);
+      const totalPaise = Number(inv.total_paise || 0);
+      const balancePaise = Math.max(0, totalPaise - confirmedPaid);
 
-    res.json(formatted);
+      const derived = deriveInvoiceStatus(inv, {
+        today: demoDate,
+        dueSoonDays,
+        confirmedPaidPaise: confirmedPaid,
+        hasOpenDispute: inv.open_dispute_count > 0 || inv.status === 'DISPUTED'
+      });
+
+      return {
+        ...inv,
+        paid_paise: confirmedPaid,
+        balance_paise: balancePaise,
+        status: derived,
+        formatted_total: formatIndianCurrency(totalPaise),
+        formatted_balance: formatIndianCurrency(balancePaise),
+        formatted_paid: formatIndianCurrency(confirmedPaid)
+      };
+    });
+
+    if (status) {
+      const target = status.toUpperCase();
+      processed = processed.filter(inv => inv.status.toUpperCase() === target);
+    }
+
+    res.json(processed);
   } catch (err) {
     res.status(500).json({ error: 'FAILED_TO_FETCH_INVOICES', message: err.message });
   }
@@ -223,14 +215,33 @@ router.get('/:id', (req, res) => {
     timeline.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
 
     const today = getToday(db);
+    const dueSoonRow = db.prepare("SELECT value FROM settings WHERE key = 'due_soon_days'").get();
+    const dueSoonDays = dueSoonRow ? parseInt(dueSoonRow.value, 10) : 7;
+
+    const confirmedPayments = payments.filter(p => !p.status || p.status === 'confirmed');
+    const confirmedPaidPaise = confirmedPayments.reduce((s, p) => s + Number(p.amount_paise || 0), 0);
+    const openDisputes = disputes.filter(d => d.status === 'OPEN');
+
+    const totalPaise = Number(invoice.total_paise || 0);
+    const balancePaise = Math.max(0, totalPaise - confirmedPaidPaise);
+
+    const derivedStatus = deriveInvoiceStatus(invoice, {
+      today,
+      dueSoonDays,
+      confirmedPaidPaise,
+      hasOpenDispute: openDisputes.length > 0 || invoice.status === 'DISPUTED'
+    });
 
     res.json({
       ...invoice,
+      status: derivedStatus,
+      paid_paise: confirmedPaidPaise,
+      balance_paise: balancePaise,
       today,
       demo_date: today,
-      formatted_total: formatIndianCurrency(invoice.total_paise),
-      formatted_balance: formatIndianCurrency(invoice.balance_paise),
-      formatted_paid: formatIndianCurrency(invoice.paid_paise),
+      formatted_total: formatIndianCurrency(totalPaise),
+      formatted_balance: formatIndianCurrency(balancePaise),
+      formatted_paid: formatIndianCurrency(confirmedPaidPaise),
       items: items.map(item => ({
         ...item,
         formatted_rate: formatIndianCurrency(item.rate_paise),
@@ -313,6 +324,13 @@ router.post('/', (req, res) => {
       return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invoice must contain at least one line item' });
     }
 
+    for (const item of items) {
+      const hsn = item.hsnCode || item.hsn || item.hsn_code;
+      if (hsn && !/^[0-9]{4,8}$/.test(String(hsn).trim())) {
+        return res.status(400).json({ error: 'VALIDATION_ERROR', message: 'HSN/SAC code must be 4 to 8 digits' });
+      }
+    }
+
     const customer = db.prepare('SELECT * FROM customers WHERE id = ?').get(customer_id);
     if (!customer) {
       return res.status(404).json({ error: 'CUSTOMER_NOT_FOUND', message: 'Selected customer does not exist' });
@@ -360,7 +378,7 @@ router.post('/', (req, res) => {
       initialStatus = 'SENT';
     }
 
-    const paymentToken = `pay_${finalInvNumber.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now()}`;
+    const paymentToken = crypto.randomBytes(16).toString('hex');
 
     const insertTx = db.transaction(() => {
       const invStmt = db.prepare(`

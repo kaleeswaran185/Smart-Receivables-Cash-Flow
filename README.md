@@ -144,7 +144,7 @@ All monetary figures are stored as **64-bit INTEGER paise** ($₹1.00 = 100\text
 
 ---
 
-## 🧪 Automated Test Suite (42 of 42 Passing)
+## 🧪 Automated Test Suite (46 of 46 Passing)
 
 The backend features a comprehensive test suite executed using Node.js built-in test runner:
 
@@ -159,7 +159,8 @@ npm test (inside backend/)
 - **SPEC Test 18**: GST documents, Payment Demand Letter disclaimers, and demo date propagation.
 - **SPEC Test 19**: SQLite file persistence across backend process restart.
 - **SPEC Test 20**: API edge cases (404s, invalid tokens, zero-item prevention, negative amounts).
-- **SPEC Section 18**: Bank statement CSV parsing, invoice # matching, customer name matching, 1%/2%/10% TDS shortfall hints, idempotent duplicate re-import, and confirmation step.
+- **SPEC Section 18**: Bank statement CSV parsing, invoice # matching, customer name matching, 0.1%/1%/2%/10% TDS shortfall hints, idempotent duplicate re-import, and confirmation step.
+- **SPEC Addendum Security & Auth**: Owner login, signed session tokens, route protection on `/api/*`, rate-limiting on public `/api/public/pay/*`, helmet headers, and 1MB payload limits.
 
 ---
 
@@ -179,7 +180,7 @@ npm install
 # Start development server (runs on port 5000 by default)
 npm start
 ```
-*The database (`baaki.db`) is automatically created and seeded with realistic Indian business data on first launch.*
+*The database (`baaki.db` or configured `DB_PATH`) is automatically created and seeded with realistic Indian business data on first launch.*
 
 ### 2. Setup Frontend
 ```bash
@@ -197,7 +198,16 @@ Visit `http://localhost:3000` to access the full application.
 
 ---
 
-## ☁️ Production Deployment
+## ☁️ Production Deployment & Resilience
+
+### Free-Tier Hosting Spin-Down & Ephemeral Data Notes
+1. **Free-Tier Spin-Down Handling**:
+   - On free platforms like Render, web services spin down (sleep) after 15 minutes of inactivity.
+   - When a user opens the web application, the frontend displays an animated **"Waking up the server..."** modal that polls the `/api/health` endpoint with exponential backoff and retries for up to **60 seconds** until the backend container finishes booting.
+2. **Ephemeral Disk vs. Persistent DB**:
+   - Free cloud container environments (e.g., standard Render free instances) feature ephemeral disks: any file stored locally in the container filesystem will reset upon container restart or deployment.
+   - **Persistence Strategy**: To preserve data permanently across deployments, configure the `DB_PATH` environment variable to point to a mounted Render Persistent Disk (e.g. `/data/baaki.db`).
+   - **Auto-Seeding**: When the service boots with an empty database or freshly mounted volume, `index.js` automatically executes `schema.sql` and `seed.js` to initialize the database instantly with zero manual intervention.
 
 ### Backend (Render)
 1. Push repository to GitHub.
@@ -205,6 +215,11 @@ Visit `http://localhost:3000` to access the full application.
 3. Configure environment variables:
    - `PORT`: `10000`
    - `FRONTEND_URL`: URL of your deployed frontend (e.g., `https://baaki-receivables.vercel.app`)
+   - `DB_PATH`: Optional path to persistent storage file (e.g., `/data/baaki.db`)
+   - `OWNER_EMAIL`: Business owner email login (e.g., `owner@baaki.app`)
+   - `OWNER_PASSWORD`: Owner password (defaults to `baaki123` in demo mode)
+   - `AUTH_SECRET`: Secret key for HMAC-SHA256 signed tokens
+   - `DEMO_MODE`: Set to `true` to enable 1-click demo login and demo tools
    - `NODE_ENV`: `production`
 
 ### Frontend (Vercel)
@@ -216,9 +231,17 @@ Visit `http://localhost:3000` to access the full application.
 
 ---
 
-## 🔒 Security & Data Privacy
-- **No Secrets in Repo**: All credentials, database files (`*.db`), and `.env` files are strictly excluded via `.gitignore`.
-- **Fictional Demo Data**: All businesses, customers, GSTINs, phone numbers, and bank account numbers are fictitious test values.
+## 🔒 Security & Demo Safety
+
+- **Owner Authentication & Route Protection**: All `/api/*` endpoints (except `/api/health`, `/api/auth/*`, and `/api/public/pay/*`) require signed authentication tokens or session cookies.
+- **Demo Mode Safety**:
+  - All demo customers and business entities are labeled clearly with `[DEMO]`.
+  - Customer contact numbers use reserved demo prefixes (`+91 99999 1000X`).
+  - WhatsApp chase links for demo contacts open generic `wa.me/?text=...` with **no phone number**, preventing accidental messaging of real mobile subscribers.
+  - Demo UPI ID uses fictional `@demo` handle (`sharmapackaging@demo`).
+  - All generated PANs feature `Z` as their 4th character (e.g., `AAAZR1234F`), mathematically guaranteeing they can never match any real Indian registered entity.
+- **Crypto-Random Token Security**: Public pay links use 128-bit crypto-random tokens; seeded invoices utilize deterministic cryptographic token constants so links persist across demo resets.
+- **Rate-Limiting & Helmet**: Public endpoints are protected with sliding-window rate limiters (`express-rate-limit`) to prevent abuse; HTTP response headers are hardened via `helmet`; JSON request bodies are capped at 1MB.
 - **No Hardcoded URLs**: The frontend reads `VITE_API_URL` dynamically with relative path fallbacks.
 - **Sanitized Calculations**: All calculations are performed server-side in integer paise to avoid client-side tampering and floating-point errors.
 

@@ -107,6 +107,19 @@ CREATE TABLE IF NOT EXISTS payments (
   payment_mode TEXT NOT NULL CHECK(payment_mode IN ('CASH', 'UPI', 'NEFT', 'RTGS', 'CHEQUE', 'CARD', 'OTHER')),
   reference_no TEXT,
   notes TEXT,
+  status TEXT NOT NULL DEFAULT 'confirmed' CHECK(status IN ('pending', 'confirmed', 'rejected')),
+  is_overpayment INTEGER DEFAULT 0,
+  overpayment_paise INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5b. Customer Credits Table (for tracked overpayments)
+CREATE TABLE IF NOT EXISTS customer_credits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  payment_id INTEGER REFERENCES payments(id) ON DELETE CASCADE,
+  amount_paise INTEGER NOT NULL,
+  notes TEXT,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -137,9 +150,10 @@ CREATE TABLE IF NOT EXISTS reminders (
   channel TEXT NOT NULL CHECK(channel IN ('WHATSAPP', 'SMS', 'EMAIL')),
   scheduled_at TEXT NOT NULL,
   sent_at TEXT,
-  status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'SENT', 'FAILED', 'CANCELLED')),
+  status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING', 'SENT', 'FAILED', 'CANCELLED', 'SKIPPED')),
   message_body TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(invoice_id, stage)
 );
 
 -- 8. Disputes Table

@@ -477,7 +477,7 @@ export function SettingsPage() {
             </div>
             <div className="sm:col-span-2">
               <label className="block text-slate-700 font-semibold mb-1">
-                Annual Aggregate Turnover (in ₹)
+                Highest aggregate turnover in any financial year since 2017-18 (PAN level)
               </label>
               <div className="flex items-center gap-3">
                 <input
@@ -490,11 +490,11 @@ export function SettingsPage() {
                   = {formatIndianCurrency(rupeesToPaise(Number(bizForm.turnoverRupees || 0)))}
                 </span>
               </div>
-              <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+              <div className="mt-1.5 flex items-center gap-1.5 text-xs">
                 {turnoverIsOver5Cr ? (
                   <span className="text-amber-800 font-medium flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                    Turnover exceeds ₹5 Crore: E-invoicing informational note enabled on invoices.
+                    e-invoicing may apply; this app does not generate IRNs.
                   </span>
                 ) : (
                   <span className="text-slate-500">Turnover under ₹5 Crore: Standard invoice format without e-invoicing note.</span>

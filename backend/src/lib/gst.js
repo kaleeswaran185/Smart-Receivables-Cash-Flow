@@ -8,6 +8,26 @@ export const GST_BASE36_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export const ALLOWED_GST_RATES = [0, 3, 5, 12, 18, 28, 40];
 
+/**
+ * Rounds half up for non-negative numbers (e.g. 2497.5 -> 2498).
+ * @param {number} val
+ * @returns {number}
+ */
+export function roundHalfUp(val) {
+  return Math.floor(Number(val) + 0.5);
+}
+
+/**
+ * Validates HSN/SAC code as 4-8 digits.
+ * @param {string|number} hsn
+ * @returns {boolean}
+ */
+export function validateHsnCode(hsn) {
+  if (!hsn) return true;
+  const clean = String(hsn).trim();
+  return /^[0-9]{4,8}$/.test(clean);
+}
+
 export const STATE_CODES = {
   '01': 'Jammu and Kashmir',
   '02': 'Himachal Pradesh',
@@ -189,9 +209,11 @@ export function calculateInvoice({ business = {}, customer = {}, items = [], pla
 
   let invoiceType = 'Tax Invoice';
   let isGSTApplicable = true;
+  let compositionNote = null;
 
   if (regType === 'COMPOSITION') {
     invoiceType = 'Bill of Supply';
+    compositionNote = 'Composition taxable person, not eligible to collect tax on supplies';
     isGSTApplicable = false;
   } else if (regType === 'UNREGISTERED') {
     invoiceType = 'Invoice';
@@ -244,13 +266,12 @@ export function calculateInvoice({ business = {}, customer = {}, items = [], pla
 
     if (isGSTApplicable && gstRate > 0) {
       if (isSameState) {
-        // CGST + SGST (split evenly)
-        const halfRate = gstRate / 2;
-        lineCgstPaise = Math.round(lineTaxablePaise * (halfRate / 100));
-        lineSgstPaise = Math.round(lineTaxablePaise * (halfRate / 100));
+        // CGST = SGST = round_half_up(taxable * rate / 2)
+        lineCgstPaise = roundHalfUp(lineTaxablePaise * (gstRate / 200));
+        lineSgstPaise = roundHalfUp(lineTaxablePaise * (gstRate / 200));
       } else {
-        // IGST
-        lineIgstPaise = Math.round(lineTaxablePaise * (gstRate / 100));
+        // IGST = round_half_up(taxable * rate)
+        lineIgstPaise = roundHalfUp(lineTaxablePaise * (gstRate / 100));
       }
     }
 
@@ -267,7 +288,7 @@ export function calculateInvoice({ business = {}, customer = {}, items = [], pla
     return {
       itemIndex: index + 1,
       description: item.description || '',
-      hsnCode: item.hsnCode || item.hsn || '',
+      hsnCode: item.hsnCode || item.hsn || item.hsn_code || '',
       qty,
       unit: item.unit || 'NOS',
       ratePaise,
@@ -289,14 +310,15 @@ export function calculateInvoice({ business = {}, customer = {}, items = [], pla
   const totalTaxPaise = cgstPaise + sgstPaise + igstPaise;
   const rawTotalPaise = taxablePaise + totalTaxPaise;
 
-  // Round off to the nearest Rupee (100 paise)
-  const roundedTotalPaise = Math.round(rawTotalPaise / 100) * 100;
+  // Round off to the nearest Rupee (100 paise, >= 50 paise rounds up)
+  const roundedTotalPaise = roundHalfUp(rawTotalPaise / 100) * 100;
   const roundOffPaise = roundedTotalPaise - rawTotalPaise;
   const totalPaise = roundedTotalPaise;
 
   return {
     invoiceType,
     businessRegType: regType,
+    compositionNote,
     isSameState,
     businessState: stateFromGSTIN(businessStateCode) || business.state || null,
     customerState: stateFromGSTIN(customerStateCode) || customer.state || null,

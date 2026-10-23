@@ -212,9 +212,9 @@ describe('SPEC Tests 9 to 11: REST APIs, Payments & Reliability Stats', () => {
     assert.equal(customers.length, 12, 'Must return 12 seeded customers');
 
     // Find customers from each behavior tier
-    const gradeACustomer = customers.find(c => c.name === 'Apex Logistics Pune');
-    const gradeBCustomer = customers.find(c => c.name === 'Hyderabad Bio Labs');
-    const gradeCCustomer = customers.find(c => c.name === 'Kolkata Jute & Packaging');
+    const gradeACustomer = customers.find(c => c.name.startsWith('Apex Logistics Pune'));
+    const gradeBCustomer = customers.find(c => c.name.startsWith('Hyderabad Bio Labs'));
+    const gradeCCustomer = customers.find(c => c.name.startsWith('Kolkata Jute & Packaging'));
 
     assert.ok(gradeACustomer, 'Grade A customer exists');
     assert.ok(gradeBCustomer, 'Grade B customer exists');

@@ -14,8 +14,43 @@ import bankImportRouter from './routes/bankImport.js';
 import { getToday } from './lib/dateUtils.js';
 import { getDatabase } from './db.js';
 
+import helmet from 'helmet';
+import authRouter from './routes/auth.js';
+import { requireAuth } from './middleware/auth.js';
+
+function createRateLimiter({ windowMs = 60 * 1000, max = 120 } = {}) {
+  const requests = new Map();
+  return (req, res, next) => {
+    if (process.env.NODE_ENV === 'test') return next();
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    let record = requests.get(ip);
+    if (!record || now - record.start > windowMs) {
+      record = { count: 1, start: now };
+      requests.set(ip, record);
+    } else {
+      record.count += 1;
+    }
+    if (record.count > max) {
+      return res.status(429).json({
+        error: 'TOO_MANY_REQUESTS',
+        message: 'Too many requests on public endpoint, please try again shortly.'
+      });
+    }
+    next();
+  };
+}
+
 export function createApp() {
   const app = express();
+
+  // Helmet security headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false
+    })
+  );
 
   // CORS allow-list configuration supporting FRONTEND_URL env var
   const rawFrontendUrl = process.env.FRONTEND_URL;
@@ -38,9 +73,13 @@ export function createApp() {
       credentials: true
     })
   );
-  app.use(express.json());
 
-  // Health check endpoint
+  // Body-size limit (1mb)
+  app.use(express.json({ limit: '1mb' }));
+
+  const publicRateLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 120 });
+
+  // Health check endpoint (public)
   app.get('/api/health', (req, res) => {
     let todayStr = '2026-10-22';
     try {
@@ -55,14 +94,21 @@ export function createApp() {
     });
   });
 
-  // REST API Modules
+  // Public Pay Page with rate limiting
+  app.use('/api/public/pay', publicRateLimiter, publicPayRouter);
+
+  // Auth routes (login/demo-login/me/logout/config) with rate limiting
+  app.use('/api/auth', publicRateLimiter, authRouter);
+
+  // Protected REST API routes (require owner authentication)
+  app.use('/api', requireAuth);
+
   app.use('/api/customers', customersRouter);
   app.use('/api/invoices', invoicesRouter);
   app.use('/api/payments', paymentsRouter);
   app.use('/api/settings', settingsRouter);
   app.use('/api/followups', followupsRouter);
   app.use('/api/reminders', remindersRouter);
-  app.use('/api/public/pay', publicPayRouter);
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/forecast', forecastRouter);
   app.use('/api/chase', chaseRouter);

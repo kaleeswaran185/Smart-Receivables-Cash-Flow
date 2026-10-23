@@ -4,9 +4,11 @@
  * Idempotent: Skips if data already exists, or can be forced.
  */
 
+import crypto from 'crypto';
 import { generateValidGSTIN, calculateInvoice } from './lib/gst.js';
 import { rupeesToPaise } from './lib/money.js';
 import { addDays } from './lib/dateUtils.js';
+import { calculateCashForecast } from './services/sharedCashService.js';
 
 export const DEMO_DATE = '2026-10-22';
 
@@ -21,6 +23,7 @@ export function seedDatabase(db, options = { force: false }) {
   if (options.force) {
     db.prepare('DELETE FROM invoice_items').run();
     db.prepare('DELETE FROM payments').run();
+    db.prepare('DELETE FROM customer_credits').run();
     db.prepare('DELETE FROM reminders').run();
     db.prepare('DELETE FROM disputes').run();
     db.prepare('DELETE FROM promises').run();
@@ -46,8 +49,10 @@ export function seedDatabase(db, options = { force: false }) {
     insertSetting.run('cash_flow_alert_threshold_paise', String(rupeesToPaise(500000))); // ₹5 Lakh
     insertSetting.run('annual_turnover_paise', '6500000000'); // ₹6.5 Crore (> ₹5 Crore)
 
-    // 2. Business: Sharma Packaging (Pune, Maharashtra)
-    const bizGSTIN = generateValidGSTIN('27', 'AAACR1234F', '1'); // Maharashtra
+    // 2. Business: Sharma Packaging [DEMO] (Pune, Maharashtra)
+    // PAN 4th character must be 'Z' so it cannot match a real business
+    const bizPAN = 'AAAZR1234F';
+    const bizGSTIN = generateValidGSTIN('27', bizPAN, '1'); // Maharashtra
     const insertBiz = db.prepare(`
       INSERT INTO business (
         name, trade_name, gstin, reg_type, state_code, state,
@@ -55,8 +60,8 @@ export function seedDatabase(db, options = { force: false }) {
         bank_name, bank_account_no, bank_ifsc, bank_branch, upi_id, turnover_paise
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      'Sharma Packaging',
-      'Sharma Packaging Solutions Pvt Ltd',
+      'Sharma Packaging [DEMO]',
+      'Sharma Packaging Solutions Pvt Ltd [DEMO]',
       bizGSTIN,
       'REGULAR',
       '27',
@@ -65,138 +70,139 @@ export function seedDatabase(db, options = { force: false }) {
       'Bhosari MIDC',
       'Pune',
       '411026',
-      '+91 98220 12345',
-      'billing@sharmapackaging.in',
-      'AAACR1234F',
+      '+91 99999 00000',
+      'billing@sharmapackaging.demo',
+      bizPAN,
       'HDFC Bank',
       '50200045892147',
       'HDFC0001234',
       'Bhosari MIDC Branch',
-      'sharmapackaging@hdfcbank',
+      'sharmapackaging@demo',
       6500000000
     );
 
     const businessId = insertBiz.lastInsertRowid;
 
     // 3. 12 Customers across different states with valid GSTINs
+    // All PANs use 4th character 'Z' so they cannot match a real business
     const customerDefs = [
       {
-        name: 'Apex Logistics Pune',
-        company: 'Apex Supply Chain Solutions LLP',
+        name: 'Apex Logistics Pune [DEMO]',
+        company: 'Apex Supply Chain Solutions LLP [DEMO]',
         stateCode: '27',
         state: 'Maharashtra',
         city: 'Pune',
-        pan: 'AABCA1111A',
+        pan: 'AABZA1111A',
         creditLimit: 1500000, // ₹15L
         behavior: 'A' // Always early or on-time
       },
       {
-        name: 'Bengaluru Fresh Foods',
-        company: 'Bengaluru Organic Organics Pvt Ltd',
+        name: 'Bengaluru Fresh Foods [DEMO]',
+        company: 'Bengaluru Organic Organics Pvt Ltd [DEMO]',
         stateCode: '29',
         state: 'Karnataka',
         city: 'Bengaluru',
-        pan: 'BBCDB2222B',
+        pan: 'BBCZB2222B',
         creditLimit: 2000000,
         behavior: 'A'
       },
       {
-        name: 'Gujarat Pharma Pack',
-        company: 'Gujarat Healthcare Packaging Ltd',
+        name: 'Gujarat Pharma Pack [DEMO]',
+        company: 'Gujarat Healthcare Packaging Ltd [DEMO]',
         stateCode: '24',
         state: 'Gujarat',
         city: 'Ahmedabad',
-        pan: 'DDEFD4444D',
+        pan: 'DDEZD4444D',
         creditLimit: 2500000,
         behavior: 'A'
       },
       {
-        name: 'Chennai Textiles & Apparels',
-        company: 'Chennai Fashion Weaves Ltd',
+        name: 'Chennai Textiles & Apparels [DEMO]',
+        company: 'Chennai Fashion Weaves Ltd [DEMO]',
         stateCode: '33',
         state: 'Tamil Nadu',
         city: 'Chennai',
-        pan: 'CCDEC3333C',
+        pan: 'CCDZC3333C',
         creditLimit: 1800000,
         behavior: 'A'
       },
       {
-        name: 'Hyderabad Bio Labs',
-        company: 'Hyderabad Life Sciences Research',
+        name: 'Hyderabad Bio Labs [DEMO]',
+        company: 'Hyderabad Life Sciences Research [DEMO]',
         stateCode: '36',
         state: 'Telangana',
         city: 'Hyderabad',
-        pan: 'FFGHF6666F',
+        pan: 'FFGZF6666F',
         creditLimit: 1200000,
         behavior: 'B' // Minor delays
       },
       {
-        name: 'Delhi Electronics Hub',
-        company: 'Delhi Smart Tech Solutions LLP',
+        name: 'Delhi Electronics Hub [DEMO]',
+        company: 'Delhi Smart Tech Solutions LLP [DEMO]',
         stateCode: '07',
         state: 'Delhi',
         city: 'New Delhi',
-        pan: 'EEFGE5555E',
+        pan: 'EEFZE5555E',
         creditLimit: 1000000,
         behavior: 'B'
       },
       {
-        name: 'Indore Agro Processing',
-        company: 'Indore Food Parks Pvt Ltd',
+        name: 'Indore Agro Processing [DEMO]',
+        company: 'Indore Food Parks Pvt Ltd [DEMO]',
         stateCode: '23',
         state: 'Madhya Pradesh',
         city: 'Indore',
-        pan: 'JJKLJ1010J',
+        pan: 'JJKZJ1010J',
         creditLimit: 1400000,
         behavior: 'B'
       },
       {
-        name: 'Jaipur Handicrafts Emporium',
-        company: 'Jaipur Royal Exports LLP',
+        name: 'Jaipur Handicrafts Emporium [DEMO]',
+        company: 'Jaipur Royal Exports LLP [DEMO]',
         stateCode: '08',
         state: 'Rajasthan',
         city: 'Jaipur',
-        pan: 'IIKJI9999I',
+        pan: 'IIKZI9999I',
         creditLimit: 800000,
         behavior: 'B'
       },
       {
-        name: 'Kolkata Jute & Packaging',
-        company: 'Eastern Packaging Goods Ltd',
+        name: 'Kolkata Jute & Packaging [DEMO]',
+        company: 'Eastern Packaging Goods Ltd [DEMO]',
         stateCode: '19',
         state: 'West Bengal',
         city: 'Kolkata',
-        pan: 'HHJIH8888H',
+        pan: 'HHJZH8888H',
         creditLimit: 1000000,
         behavior: 'C' // High delay
       },
       {
-        name: 'Noida Auto Components',
-        company: 'Noida Precision Engineering Pvt Ltd',
+        name: 'Noida Auto Components [DEMO]',
+        company: 'Noida Precision Engineering Pvt Ltd [DEMO]',
         stateCode: '09',
         state: 'Uttar Pradesh',
         city: 'Noida',
-        pan: 'GGHIG7777G',
+        pan: 'GGHZG7777G',
         creditLimit: 1200000,
         behavior: 'C'
       },
       {
-        name: 'Gurugram Retail Ventures',
-        company: 'Gurugram Quick Commerce Labs',
+        name: 'Gurugram Retail Ventures [DEMO]',
+        company: 'Gurugram Quick Commerce Labs [DEMO]',
         stateCode: '06',
         state: 'Haryana',
         city: 'Gurugram',
-        pan: 'LLMNL3030L',
+        pan: 'LLMZL3030L',
         creditLimit: 900000,
         behavior: 'C'
       },
       {
-        name: 'Kochi Spices Export',
-        company: 'Malabar Spices & Aromas Ltd',
+        name: 'Kochi Spices Export [DEMO]',
+        company: 'Malabar Spices & Aromas Ltd [DEMO]',
         stateCode: '32',
         state: 'Kerala',
         city: 'Kochi',
-        pan: 'KKLMK2020K',
+        pan: 'KKLZK2020K',
         creditLimit: 1100000,
         behavior: 'C'
       }
@@ -222,8 +228,8 @@ export function seedDatabase(db, options = { force: false }) {
         `Unit ${idx + 1}, Industrial Estate`,
         c.city,
         `${c.stateCode}0001`,
-        `+91 91234 ${50000 + idx}`,
-        `accounts@${c.name.toLowerCase().replace(/[^a-z]/g, '')}.com`,
+        `+91 99999 ${String(10000 + idx)}`,
+        `accounts@${c.name.toLowerCase().replace(/[^a-z]/g, '')}.demo`,
         rupeesToPaise(c.creditLimit),
         30
       );
@@ -431,7 +437,8 @@ export function seedDatabase(db, options = { force: false }) {
         balancePaise = totalPaise - paidPaise;
       }
 
-      const paymentToken = `pay_${invNum.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${i}`;
+      // Fixed 128-bit token constant (32 hex chars) so seeded pay links survive a reset
+      const paymentToken = crypto.createHash('sha256').update(`baaki_seed_${invNum}`).digest('hex').slice(0, 32);
 
       // Insert invoice
       const invRes = insertInvoiceStmt.run(
@@ -543,7 +550,7 @@ export function seedDatabase(db, options = { force: false }) {
       { category: 'SALARY', desc: 'Factory Staff & Machine Operators Payroll Oct 2026', amount: 250000, date: '2026-11-01', vendor: 'Internal Staff' },
       // Week 3 (Nov 05 - Nov 11) - Heavy Supplier & Tax week creating the planned cash shortage:
       { category: 'RENT', desc: 'Bhosari MIDC Plant Lease - November 2026', amount: 85000, date: '2026-11-05', vendor: 'MIDC Property Holdings' },
-      { category: 'SUPPLIER', desc: 'Century Paperboard Mills Bulk Fluting Paper (40 MT)', amount: 650000, date: '2026-11-08', vendor: 'Century Paperboard Mills Ltd' },
+      { category: 'SUPPLIER', desc: 'Century Paperboard Mills Bulk Fluting Paper (40 MT)', amount: 1750000, date: '2026-11-08', vendor: 'Century Paperboard Mills Ltd' },
       { category: 'GST', desc: 'GST Monthly Settlement Challan - Oct 2026', amount: 95000, date: '2026-11-10', vendor: 'GST Portal India' },
       // Week 4 (Nov 12 - Nov 18):
       { category: 'ELECTRICITY', desc: 'Industrial Power Bill HT Connection', amount: 52000, date: '2026-11-15', vendor: 'Maharashtra State Electricity Board' },
@@ -576,9 +583,26 @@ export function seedDatabase(db, options = { force: false }) {
 
   runInTransaction();
 
+  // Evaluate forecast & chase prioritization for demo verification
+  const forecast = calculateCashForecast(db);
+  const shortageWeek = forecast.firstShortageWeek
+    ? `Week ${forecast.firstShortageWeek.weekNumber} (${forecast.firstShortageWeek.startDate} to ${forecast.firstShortageWeek.endDate})`
+    : 'None';
+  const topInvoice = forecast.chaseList && forecast.chaseList.length > 0 ? forecast.chaseList[0] : null;
+
+  console.log(`[SEED] Planned Demo Shortage: ${shortageWeek}`);
+  if (forecast.firstShortageWeek) {
+    console.log(`[SEED] Shortage Deficit: ${forecast.firstShortageWeek.formattedDeficit} below safety buffer of ₹5,00,000`);
+  }
+  if (topInvoice) {
+    console.log(`[SEED] Top-Ranked Chase Invoice: #${topInvoice.invoice_number} - ${topInvoice.customer_name} (Score: ${topInvoice.score}/100, Balance: ${topInvoice.formatted_balance}, Reason: "${topInvoice.reason}")`);
+  }
+
   return {
     seeded: true,
-    message: 'Seeded Sharma Packaging with 12 customers, 40 invoices, payments and expenses'
+    shortage_week: shortageWeek,
+    top_ranked_invoice: topInvoice ? `#${topInvoice.invoice_number} (${topInvoice.customer_name})` : null,
+    message: 'Seeded Sharma Packaging [DEMO] with 12 customers, 40 invoices, payments and expenses'
   };
 }
 

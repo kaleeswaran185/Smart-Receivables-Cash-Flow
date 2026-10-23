@@ -22,12 +22,15 @@ class ApiError extends Error {
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
   
+  const token = typeof window !== 'undefined' ? localStorage.getItem('baaki_auth_token') : null;
   const headers = {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {})
   };
 
   const config = {
+    credentials: 'include',
     ...options,
     headers
   };

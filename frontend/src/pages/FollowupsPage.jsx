@@ -133,6 +133,16 @@ export function FollowupsPage() {
     }
   };
 
+  const isDemoNumber = (phone, customerName = '') => {
+    if (!phone) return true;
+    const clean = String(phone).replace(/[^0-9]/g, '');
+    if (clean.includes('99999') || clean.includes('00000') || clean.startsWith('9199999') || clean.startsWith('9191234') || clean.startsWith('91234')) {
+      return true;
+    }
+    if (String(customerName).includes('[DEMO]')) return true;
+    return false;
+  };
+
   const getCleanPhone = (phone) => {
     return (phone || '').replace(/[^0-9]/g, '');
   };
@@ -190,7 +200,10 @@ export function FollowupsPage() {
             const daysOverdue = f.days_overdue !== undefined ? f.days_overdue : f.stage;
             const payUrl = `${window.location.origin}/pay/${f.payment_token || f.invoice_id}`;
             const cleanPhone = getCleanPhone(f.customer_phone);
-            const waUrl = `https://wa.me/${cleanPhone ? (cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`) : ''}?text=${encodeURIComponent(f.suggested_message)}`;
+            const isDemo = isDemoNumber(f.customer_phone, f.customer_name);
+            const waUrl = isDemo
+              ? `https://wa.me/?text=${encodeURIComponent(f.suggested_message)}`
+              : `https://wa.me/${cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`}?text=${encodeURIComponent(f.suggested_message)}`;
             const mailtoUrl = `mailto:${f.customer_email || ''}?subject=${encodeURIComponent(`Payment Follow-up: Invoice ${f.invoice_number}`)}&body=${encodeURIComponent(f.suggested_message)}`;
             const smsUrl = `sms:${cleanPhone}?body=${encodeURIComponent(f.suggested_message)}`;
 

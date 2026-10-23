@@ -176,7 +176,7 @@ export function parseBankCSV(csvText) {
  * Checks for TDS shortfalls (1%, 2%, 10%) on an invoice balance.
  */
 function checkTDSHint(receivedPaise, invoiceBalancePaise, invoiceTaxablePaise) {
-  const rates = [1, 2, 10];
+  const rates = [0.1, 1, 2, 10];
   
   // Check TDS on gross invoice balance
   for (const rate of rates) {
@@ -185,13 +185,14 @@ function checkTDSHint(receivedPaise, invoiceBalancePaise, invoiceTaxablePaise) {
     
     // Allow +/- 100 paise (₹1) tolerance for rupee rounding
     if (Math.abs(receivedPaise - expectedNet) <= 100) {
+      const sectionNote = rate === 0.1 ? 'Section 194Q' : 'Section 194C/J';
       return {
         detected: true,
         rate_percent: rate,
         tds_amount_paise: tdsPaise,
         expected_full_amount_paise: invoiceBalancePaise,
         formatted_tds: formatIndianCurrency(tdsPaise),
-        note: `${rate}% TDS deduction detected (Section 194C/J). Shortfall: ${formatIndianCurrency(tdsPaise)}`
+        note: `${rate}% TDS deduction detected (${sectionNote}). Shortfall: ${formatIndianCurrency(tdsPaise)}`
       };
     }
   }

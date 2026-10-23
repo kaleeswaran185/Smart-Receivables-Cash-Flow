@@ -1,53 +1,78 @@
 import { addDays } from './dateUtils.js';
 
 /**
- * Synchronizes invoice statuses in the database against the given reference 'today' date.
- * - Invoices with balance_paise > 0 and paid_paise == 0:
- *   - due_date < today -> 'OVERDUE'
- *   - due_date >= today and due_date <= today + 7 days -> 'DUE_SOON'
- *   - due_date > today + 7 days -> 'SENT'
- * Preserves 'PAID', 'CANCELLED', 'DRAFT', 'DISPUTED', and 'PARTIALLY_PAID'.
+ * Derives invoice status at read time.
+ * Invariant priority:
+ * 1. Paid: confirmed payments >= total_paise (total_paise > 0)
+ * 2. Disputed: has an open dispute
+ * 3. Part Paid: confirmed payments > 0 and < total_paise
+ * 4. Overdue: due_date < today
+ * 5. Due Soon: today <= due_date <= today + dueSoonDays (0-7 days, configurable)
+ * 6. Sent: sent flag is true or invoice is not draft
+ * 7. Draft: draft status
  *
- * @param {object} db - better-sqlite3 database instance
- * @param {string} today - Reference date string in YYYY-MM-DD
+ * @param {object} invoice
+ * @param {object} options
+ * @param {string} options.today - YYYY-MM-DD
+ * @param {number} [options.dueSoonDays=7]
+ * @param {number} [options.confirmedPaidPaise]
+ * @param {boolean} [options.hasOpenDispute]
+ * @returns {string} Derived status string
  */
-export function syncInvoiceStatuses(db, today) {
-  if (!today || !/^\d{4}-\d{2}-\d{2}$/.test(today)) {
-    return;
+export function deriveInvoiceStatus(invoice, { today, dueSoonDays = 7, confirmedPaidPaise = null, hasOpenDispute = null } = {}) {
+  if (invoice.status === 'CANCELLED') {
+    return 'CANCELLED';
   }
 
-  const dueSoonCutoff = addDays(today, 7);
+  const totalPaise = Number(invoice.total_paise || 0);
+  const paidPaise = confirmedPaidPaise !== null ? Number(confirmedPaidPaise) : Number(invoice.paid_paise || 0);
+  const isDraft = invoice.status === 'DRAFT' || invoice.is_draft === 1 || invoice.is_draft === true;
 
-  // 1. Mark overdue for invoices with due_date < today
-  db.prepare(`
-    UPDATE invoices
-    SET status = 'OVERDUE', updated_at = CURRENT_TIMESTAMP
-    WHERE status IN ('SENT', 'UNPAID', 'DUE_SOON')
-      AND due_date < ?
-      AND balance_paise > 0
-      AND paid_paise = 0
-  `).run(today);
+  // 1. Paid
+  if (totalPaise > 0 && paidPaise >= totalPaise) {
+    return 'PAID';
+  }
 
-  // 2. Mark due soon for invoices due within next 7 days [today, today + 7]
-  db.prepare(`
-    UPDATE invoices
-    SET status = 'DUE_SOON', updated_at = CURRENT_TIMESTAMP
-    WHERE status IN ('SENT', 'UNPAID', 'OVERDUE')
-      AND due_date >= ?
-      AND due_date <= ?
-      AND balance_paise > 0
-      AND paid_paise = 0
-  `).run(today, dueSoonCutoff);
+  // 2. Disputed
+  if (hasOpenDispute === true || invoice.has_open_dispute === 1 || invoice.status === 'DISPUTED') {
+    return 'DISPUTED';
+  }
 
-  // 3. Mark sent for invoices due beyond 7 days
-  db.prepare(`
-    UPDATE invoices
-    SET status = 'SENT', updated_at = CURRENT_TIMESTAMP
-    WHERE status IN ('OVERDUE', 'DUE_SOON')
-      AND due_date > ?
-      AND balance_paise > 0
-      AND paid_paise = 0
-  `).run(dueSoonCutoff);
+  // 3. Part Paid
+  if (paidPaise > 0 && paidPaise < totalPaise) {
+    return 'PARTIALLY_PAID';
+  }
+
+  // 4. Overdue (due_date < today)
+  if (invoice.due_date && today && invoice.due_date < today) {
+    return 'OVERDUE';
+  }
+
+  // 5. Due Soon (today <= due_date <= today + dueSoonDays)
+  if (invoice.due_date && today) {
+    const dueSoonEnd = addDays(today, Number(dueSoonDays) || 7);
+    if (invoice.due_date >= today && invoice.due_date <= dueSoonEnd) {
+      return 'DUE_SOON';
+    }
+  }
+
+  // 6. Sent
+  if (!isDraft) {
+    return 'SENT';
+  }
+
+  // 7. Draft
+  return 'DRAFT';
 }
 
-export default syncInvoiceStatuses;
+/**
+ * Compatibility helper. In accordance with SPEC Section B.4, volatile statuses
+ * (OVERDUE, DUE_SOON, PARTIALLY_PAID, PAID) are NOT stored in the database.
+ * Status is derived at read time by deriveInvoiceStatus.
+ */
+export function syncInvoiceStatuses(db, today) {
+  // No-op to preserve database integrity and ensure read-time derivation
+  return;
+}
+
+export default deriveInvoiceStatus;

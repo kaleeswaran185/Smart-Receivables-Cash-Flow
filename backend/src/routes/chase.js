@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDatabase } from '../db.js';
-import { calculateChasePriority } from '../services/chaseService.js';
+import { calculateChasePriority, getDisputeList } from '../services/chaseService.js';
 
 const router = express.Router();
 
@@ -15,6 +15,20 @@ router.get('/', (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'FAILED_TO_CALCULATE_CHASE_PRIORITY', message: err.message });
+  }
+});
+
+/**
+ * GET /api/chase/disputes
+ * Returns separate resolve dispute list for excluded disputed invoices.
+ */
+router.get('/disputes', (req, res) => {
+  try {
+    const db = getDatabase();
+    const result = getDisputeList(db, req.query);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'FAILED_TO_GET_DISPUTE_LIST', message: err.message });
   }
 });
 

@@ -116,25 +116,13 @@ export function evaluateInvoiceReminder(db, invoice, today = null) {
     // If promised_date < today, promise is broken; ladder resumes!
   }
 
-  // 5. Determine Current Stage based on days overdue
+  // 5. Determine Eligible Due Stages based on days overdue
   const daysOverdue = diffDays(today, invoice.due_date);
 
-  let currentStage = null;
-  if (daysOverdue >= 45) {
-    currentStage = 45;
-  } else if (daysOverdue >= 30) {
-    currentStage = 30;
-  } else if (daysOverdue >= 15) {
-    currentStage = 15;
-  } else if (daysOverdue >= 7) {
-    currentStage = 7;
-  } else if (daysOverdue >= 0) {
-    currentStage = 0;
-  } else if (daysOverdue >= -3) {
-    currentStage = -3;
-  }
+  // Eligible stages are all predefined stages where stage <= daysOverdue
+  const eligibleStages = STAGES.filter(s => s <= daysOverdue);
 
-  if (currentStage === null) {
+  if (eligibleStages.length === 0) {
     return {
       isActionable: false,
       status: 'NOT_DUE_YET',
@@ -143,23 +131,33 @@ export function evaluateInvoiceReminder(db, invoice, today = null) {
     };
   }
 
-  // 6. Check if this exact stage has already been sent
-  const alreadySent = db.prepare(`
-    SELECT * FROM reminders
-    WHERE invoice_id = ? AND stage = ? AND status = 'SENT'
-  `).get(invoice.id, currentStage);
+  // 6. Check existing sent or skipped stages in DB
+  const existingRecords = db.prepare(`
+    SELECT stage, status FROM reminders WHERE invoice_id = ?
+  `).all(invoice.id);
 
-  if (alreadySent) {
+  const handledStages = new Set(
+    existingRecords
+      .filter(r => r.status === 'SENT' || r.status === 'SKIPPED')
+      .map(r => r.stage)
+  );
+
+  // Unsent due stages
+  const unsentDueStages = eligibleStages.filter(s => !handledStages.has(s));
+
+  if (unsentDueStages.length === 0) {
     return {
       isActionable: false,
       status: 'ALREADY_SENT',
-      stage: currentStage,
-      sentAt: alreadySent.sent_at,
-      reason: `Stage ${currentStage} already sent on ${alreadySent.sent_at}`
+      daysOverdue,
+      reason: `All eligible stages up to ${daysOverdue} days overdue have already been handled`
     };
   }
 
-  // Invoice is actionable for this stage!
+  // Rule 7: Send only the HIGHEST due unsent stage
+  const currentStage = Math.max(...unsentDueStages);
+
+  // Invoice is actionable for this highest unsent stage!
   return {
     isActionable: true,
     isPaused: false,
@@ -235,6 +233,7 @@ export function getActionableFollowups(db) {
 
 /**
  * Records that a reminder has been sent.
+ * Rule: Marks the sent stage as 'SENT', and any earlier due unsent stages as 'SKIPPED'.
  */
 export function recordReminderSent(db, { invoiceId, stage, channel = 'WHATSAPP', messageBody, sentAt }) {
   const today = getToday(db);
@@ -244,25 +243,70 @@ export function recordReminderSent(db, { invoiceId, stage, channel = 'WHATSAPP',
   if (!invoice) throw new Error('Invoice not found');
 
   const meta = STAGE_META[stage] || { name: 'CUSTOM' };
+  const daysOverdue = diffDays(today, invoice.due_date);
 
-  const insert = db.prepare(`
-    INSERT INTO reminders (
-      business_id, invoice_id, customer_id, reminder_type, stage, channel, scheduled_at, sent_at, status, message_body
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    invoice.business_id,
-    invoice.id,
-    invoice.customer_id,
-    meta.name,
-    stage,
-    channel,
-    finalSentAt,
-    finalSentAt,
-    'SENT',
-    messageBody || ''
-  );
+  const tx = db.transaction(() => {
+    // 1. Mark the target stage as SENT (upsert for UNIQUE(invoice_id, stage))
+    const existingTarget = db.prepare('SELECT id FROM reminders WHERE invoice_id = ? AND stage = ?').get(invoiceId, stage);
+    let reminderId;
 
-  return { id: insert.lastInsertRowid, invoice_id: invoiceId, stage, sent_at: finalSentAt };
+    if (existingTarget) {
+      db.prepare(`
+        UPDATE reminders
+        SET status = 'SENT', sent_at = ?, message_body = ?, channel = ?, reminder_type = ?
+        WHERE id = ?
+      `).run(finalSentAt, messageBody || '', channel, meta.name, existingTarget.id);
+      reminderId = existingTarget.id;
+    } else {
+      const insert = db.prepare(`
+        INSERT INTO reminders (
+          business_id, invoice_id, customer_id, reminder_type, stage, channel, scheduled_at, sent_at, status, message_body
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SENT', ?)
+      `).run(
+        invoice.business_id,
+        invoice.id,
+        invoice.customer_id,
+        meta.name,
+        stage,
+        channel,
+        finalSentAt,
+        finalSentAt,
+        messageBody || ''
+      );
+      reminderId = insert.lastInsertRowid;
+    }
+
+    // 2. Mark any earlier due stages as 'SKIPPED'
+    for (const s of STAGES) {
+      if (s < stage && s <= daysOverdue) {
+        const existingEarlier = db.prepare('SELECT id, status FROM reminders WHERE invoice_id = ? AND stage = ?').get(invoiceId, s);
+        if (!existingEarlier) {
+          const metaS = STAGE_META[s] || { name: 'CUSTOM' };
+          db.prepare(`
+            INSERT INTO reminders (
+              business_id, invoice_id, customer_id, reminder_type, stage, channel, scheduled_at, sent_at, status, message_body
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SKIPPED', 'Skipped due to jump to higher stage')
+          `).run(
+            invoice.business_id,
+            invoice.id,
+            invoice.customer_id,
+            metaS.name,
+            s,
+            channel,
+            finalSentAt,
+            finalSentAt
+          );
+        } else if (existingEarlier.status === 'PENDING') {
+          db.prepare("UPDATE reminders SET status = 'SKIPPED' WHERE id = ?").run(existingEarlier.id);
+        }
+      }
+    }
+
+    return reminderId;
+  });
+
+  const reminderId = tx();
+  return { id: reminderId, invoice_id: invoiceId, stage, sent_at: finalSentAt };
 }
 
 /**
