@@ -65,6 +65,10 @@ export function createApp() {
         if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
+        // Allow all Vercel domains (*.vercel.app) for seamless frontend deployments
+        if (origin.endsWith('.vercel.app') || /^https:\/\/[a-zA-Z0-9_\-.]+\.vercel\.app$/.test(origin)) {
+          return callback(null, true);
+        }
         if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
           return callback(null, true);
         }
