@@ -4,9 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node ./node_modules/vite/bin/vite.js",
-    "build": "node ./node_modules/vite/bin/vite.js build",
-    "preview": "node ./node_modules/vite/bin/vite.js preview",
+    "dev": "node -e \"import('vite').then(({ createServer }) => createServer().then(s => s.listen()))\"",
+    "build": "node -e \"import('vite').then(({ build }) => build())\"",
+    "preview": "node -e \"import('vite').then(({ preview }) => preview())\"",
     "test:e2e": "node test_e2e_runner.js",
     "test:i18n-keys": "node scripts/verify-i18n-keys.js",
     "test:i18n-lint": "node scripts/lint-hardcoded-strings.js"
