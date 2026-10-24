@@ -32,3 +32,6 @@ lerna-debug.log*
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Lockfiles (prevent Windows/Linux native binary conflicts)
+package-lock.json

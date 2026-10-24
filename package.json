@@ -13,5 +13,10 @@
     "start:frontend": "npm run dev --prefix frontend",
     "build": "npm install --prefix backend",
     "test": "npm test --prefix backend"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.65.0",
+    "@rollup/rollup-linux-x64-musl": "4.65.0",
+    "@rollup/rollup-win32-x64-msvc": "4.65.0"
   }
 }
