@@ -20,7 +20,7 @@ export function ServerWakeupGuard({ children }) {
           </p>
           <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-left text-xs font-mono text-slate-300 space-y-1">
             <div className="text-slate-500 text-[11px]">// Required Vercel Environment Variable:</div>
-            <div className="text-emerald-400 font-bold">VITE_API_URL=https://baaki-api.onrender.com/api</div>
+            <div className="text-emerald-400 font-bold">VITE_API_URL=https://smart-receivables-cash-flow.onrender.com/api</div>
           </div>
           <p className="text-[11px] text-amber-300">
             Vite bakes environment variables into the bundle at build time. After setting the variable, trigger a redeploy on Vercel.

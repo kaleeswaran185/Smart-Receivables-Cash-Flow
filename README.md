@@ -9,8 +9,8 @@
 | Service | Platform | URL |
 |---|---|---|
 | **Frontend Web App** | Vercel | `https://baaki-receivables.vercel.app` *(Configurable)* |
-| **Backend REST API** | Render | `https://baaki-api.onrender.com` *(Configurable)* |
-| **API Health Check** | Render | `https://baaki-api.onrender.com/api/health` |
+| **Backend REST API** | Render | `https://smart-receivables-cash-flow.onrender.com` |
+| **API Health Check** | Render | `https://smart-receivables-cash-flow.onrender.com/api/health` |
 | **Product Walkthrough Video** | YouTube | `https://youtu.be/placeholder-demo` *(Demo)* |
 
 ---

@@ -8,17 +8,13 @@
 const RAW_API_URL = import.meta.env.VITE_API_URL;
 const isProd = import.meta.env.PROD;
 
-if (isProd && (!RAW_API_URL || !RAW_API_URL.trim())) {
-  console.error(
-    '[CRITICAL CONFIGURATION ERROR] VITE_API_URL environment variable is missing in production!\n' +
-    'Vite embeds environment variables at build time. To point to your live Render backend, configure VITE_API_URL and trigger a redeploy.'
-  );
+let normalizedApiUrl = RAW_API_URL ? RAW_API_URL.trim().replace(/\/+$/, '') : null;
+if (normalizedApiUrl && !normalizedApiUrl.endsWith('/api') && !normalizedApiUrl.startsWith('/api')) {
+  normalizedApiUrl += '/api';
 }
 
-// In production, refuse silent fallback; in development, allow relative '/api'
-export const API_BASE_URL = RAW_API_URL
-  ? RAW_API_URL.replace(/\/+$/, '')
-  : (isProd ? null : '/api');
+// In production, fallback to live Render backend; in local dev, fallback to '/api'
+export const API_BASE_URL = normalizedApiUrl || (isProd ? 'https://smart-receivables-cash-flow.onrender.com/api' : '/api');
 
 export class ApiError extends Error {
   constructor(message, status, data) {
