@@ -34,6 +34,7 @@ export function ServerWakeupGuard({ children }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
   const [hasTimedOut, setHasTimedOut] = useState(false);
+  const [lastError, setLastError] = useState(null);
 
   const checkServerHealth = async () => {
     try {
@@ -43,7 +44,7 @@ export function ServerWakeupGuard({ children }) {
         return true;
       }
     } catch (e) {
-      // Server still sleeping or starting up
+      setLastError(e.message || 'Server still starting up or CORS blocked');
     }
     return false;
   };
@@ -146,18 +147,32 @@ export function ServerWakeupGuard({ children }) {
               <AlertCircle className="w-4 h-4 text-amber-400" />
               <span>Still starting up...</span>
             </div>
-            <p className="text-slate-300">
-              The server is taking longer than expected. Click below to re-ping or check your internet connection.
+            <p className="text-slate-300 text-left text-[11px]">
+              If your backend is already running on Render, set <code className="bg-slate-900 px-1 py-0.5 rounded text-amber-300 font-mono">FRONTEND_URL=*</code> in your Render Environment Variables so browser requests are allowed by CORS.
             </p>
-            <button
-              type="button"
-              onClick={handleManualRetry}
-              disabled={isRetrying}
-              className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors shadow-sm"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
-              <span>Retry Connection</span>
-            </button>
+            {lastError && (
+              <div className="p-2 rounded bg-slate-900/80 border border-slate-700/60 text-slate-400 font-mono text-[10px] text-left break-all">
+                {lastError}
+              </div>
+            )}
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleManualRetry}
+                disabled={isRetrying}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors shadow-sm cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
+                <span>Retry Connection</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsServerReady(true)}
+                className="w-full py-2 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 active:bg-slate-800 text-slate-200 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Proceed to App Anyway
+              </button>
+            </div>
           </div>
         )}
       </div>
