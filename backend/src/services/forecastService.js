@@ -10,27 +10,8 @@ import { formatIndianCurrency } from '../lib/money.js';
 export function calculateCashForecast(db, options = {}) {
   const model = getSharedCashModel(db, options);
 
-  const gapCoveringInvoices = [];
-  if (model.firstShortageWeek) {
-    const neededPaise = model.firstShortageWeek.deficitPaise;
-    model.scheduledCollections.forEach(inv => {
-      if (inv.balance_paise >= neededPaise) {
-        gapCoveringInvoices.push({
-          invoice_id: inv.invoice_id,
-          invoice_number: inv.invoice_number,
-          customer_name: inv.customer_name,
-          balance_paise: inv.balance_paise,
-          formatted_balance: formatIndianCurrency(inv.balance_paise),
-          due_date: inv.due_date,
-          status: 'OVERDUE',
-          coverage_percentage: Math.round((inv.balance_paise / neededPaise) * 100),
-          covers_entire_deficit: true
-        });
-      }
-    });
-
-    gapCoveringInvoices.sort((a, b) => b.balance_paise - a.balance_paise);
-  }
+  // Use the canonical smallest gap-covering set computed in sharedCashService
+  const gapCoveringInvoices = model.gapCoveringInvoices || [];
 
   return {
     today: model.today,
@@ -54,7 +35,8 @@ export function calculateCashForecast(db, options = {}) {
     atRiskInvoices: model.atRiskInvoices,
     totalAtRiskPaise: model.totalAtRiskPaise,
     expectedThisWeekPaise: model.summary.expectedThisWeekPaise,
-    expectedThisMonthPaise: model.summary.expectedThisMonthPaise
+    expectedThisMonthPaise: model.summary.expectedThisMonthPaise,
+    summary: model.summary
   };
 }
 
