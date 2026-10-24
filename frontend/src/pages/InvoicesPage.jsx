@@ -196,6 +196,7 @@ export function InvoicesPage() {
           {/* Customer Filter */}
           <div>
             <select
+              id="invoice-customer-filter"
               value={customerFilter}
               onChange={(e) => setCustomerFilter(e.target.value)}
               className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -212,6 +213,7 @@ export function InvoicesPage() {
           {/* Status Filter */}
           <div>
             <select
+              id="invoice-status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -230,6 +232,7 @@ export function InvoicesPage() {
           {/* Overdue Ageing Filter */}
           <div>
             <select
+              id="invoice-overdue-filter"
               value={overdueFilter}
               onChange={(e) => setOverdueFilter(e.target.value)}
               className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-sm bg-white font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"

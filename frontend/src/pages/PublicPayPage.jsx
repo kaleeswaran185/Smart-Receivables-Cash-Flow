@@ -456,6 +456,7 @@ export function PublicPayPage() {
                   </button>
                   <button
                     type="submit"
+                    id="submit-claim-btn"
                     disabled={submittingClaim}
                     className="flex-1 min-h-[48px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer"
                   >

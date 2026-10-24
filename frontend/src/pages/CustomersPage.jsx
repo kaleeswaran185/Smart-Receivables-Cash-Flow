@@ -310,6 +310,7 @@ export function CustomersPage() {
                 <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                   <button
                     type="button"
+                    aria-label="View Invoices & History"
                     onClick={() => openCustomerDetail(c)}
                     className="flex-1 min-h-[48px] rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
                   >

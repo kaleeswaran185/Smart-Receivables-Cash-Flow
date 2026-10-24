@@ -262,6 +262,7 @@ export function NewInvoicePage() {
                 </div>
               ) : (
                 <select
+                  id="new-invoice-customer-select"
                   value={customerId}
                   onChange={(e) => selectCustomer(e.target.value)}
                   className="w-full min-h-[48px] px-3.5 rounded-xl border border-slate-200 text-sm font-semibold bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
